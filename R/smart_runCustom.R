@@ -4,10 +4,10 @@ smart_runCustom <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL
   # read the job log
   job_log_path = file.path(tempdir(), "job_log.rds")
   if (file.exists(job_log_path)) {
-    Table_job_status <- view_job()
+    Table_job_status <- view_job(path = job_log_path)
   } else {
-    init_job()
-    Table_job_status <- view_job()
+    init_job(path = job_log_path)
+    Table_job_status <- view_job(path = job_log_path)
   }
 
   # Read the number of cores on the computer
@@ -44,7 +44,8 @@ smart_runCustom <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL
     name = ids::random_id(n=1,bytes=5),
     useCore = core,
     untilFinished = FALSE,
-    priority = priority
+    priority = priority,
+    path = job_log_path
   )
 
   # get the current index
@@ -108,7 +109,8 @@ smart_runCustom <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL
     # update the job log
     update_job(
       current_index,
-      status = "running"
+      status = "running",
+      path = job_log_path
     )
 
     tryCatch(
@@ -124,7 +126,8 @@ smart_runCustom <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL
         # Adjust the status of the model as completed.
         update_job(
           current_index,
-          status = "completed"
+          status = "completed",
+          path = job_log_path
         )
 
         return(NA)
@@ -135,7 +138,8 @@ smart_runCustom <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL
         # Adjust the status of the model as running.
         update_job(
           current_index,
-          status = "failed"
+          status = "failed",
+          path = job_log_path
         )
 
         # message error

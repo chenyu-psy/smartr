@@ -5,13 +5,20 @@
 #'
 #' @param .x The index or name of the job. If NULL, return all jobs.
 #'
+#' @param path The path to the job log.
+#'
 #' @return A data frame containing the status of the job.
 #'
 #' @export
 #'
-view_job <- function(.x=NULL) {
+view_job <- function(.x=NULL, path=NULL) {
 
-  file_path = file.path(tempdir(), "job_log.rds")
+  if (!is.null(path)) {
+    file_path = file.path(path, "job_log.rds")
+  } else {
+    file_path = file.path(tempdir(), "job_log.rds")
+  }
+
   Table_status = readRDS(file_path)
 
   if (is.character(.x)) {

@@ -6,11 +6,17 @@
 #'
 #' @param .x The index or name of the job to be removed.
 #'
+#' @param path The path to the job log.
+#'
 #' @export
-remove_job <- function(.x) {
+remove_job <- function(.x, path = NULL) {
 
   # read the job log
-  file_path = file.path(tempdir(), "job_log.rds")
+  if (!is.null(path)) {
+    file_path = file.path(path, "job_log.rds")
+  } else {
+    file_path = file.path(tempdir(), "job_log.rds")
+  }
   Table_status = readRDS(file_path)
 
   # remove the job
