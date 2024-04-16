@@ -7,6 +7,8 @@
 #' @param status The status of the job.
 #' @param path The path to the job log.
 #'
+#'@export
+#'
 update_job <- function(.x, status, path=NULL) {
 
   # read the job log
@@ -28,18 +30,22 @@ update_job <- function(.x, status, path=NULL) {
 
   # update the job
   if (status == "running") {
-    Table_status[which(Table_status$index == .x), "startTime"] = Sys.time()
-  } else if (status == "finished") {
+    startTime = as.character(Sys.time())
+    Table_status[which(Table_status$index == .x), "startTime"] = startTime
+  } else if (status == "completed" || status == "failed") {
 
     # calculate the duration
     startTime = Table_status[which(Table_status$index == .x), "startTime"]
-    endTime = Sys.time()
-    duration = difftime(endTime, startTime, units = "secs")
+    startTime = as.POSIXct(startTime)
+    endTime = as.character(Sys.time())
+    duration = difftime(endTime, startTime, units = "hours") %>% round(2)
 
     # update the job
     Table_status[which(Table_status$index == .x), "endTime"] = endTime
     Table_status[which(Table_status$index == .x), "duration"] = duration
   }
+
+  Table_status[which(Table_status$index == .x), "status"] = status
 
   # save the job log
   saveRDS(Table_status, file_path)

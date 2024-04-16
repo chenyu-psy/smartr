@@ -4,7 +4,13 @@
 \alias{append_job}
 \title{Append a new job to the job log}
 \usage{
-append_job(name = NULL, useCore = 1, untilFinished = FALSE, priority = 0)
+append_job(
+  name = NULL,
+  useCore = 1,
+  untilFinished = FALSE,
+  priority = 0,
+  path = NULL
+)
 }
 \arguments{
 \item{name}{The name of the job.}
@@ -16,13 +22,7 @@ until previous jobs are finished.}
 
 \item{priority}{The priority of the job.}
 
-\item{status}{The status of the job.}
-
-\item{startTime}{When the job starts.}
-
-\item{endTime}{When the job ends.}
-
-\item{duration}{The duration of the job.}
+\item{path}{The path to the job log.}
 }
 \description{
 This function will append a new job to the job log.

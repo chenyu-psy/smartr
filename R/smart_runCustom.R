@@ -2,7 +2,7 @@
 smart_runCustom <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL, priority = 1,  checkInt = 19, name = NULL){
 
   # read the job log
-  job_log_path = file.path(tempdir(), "job_log.rds")
+  job_log_path = tempdir()
   if (file.exists(job_log_path)) {
     Table_job_status <- view_job(path = job_log_path)
   } else {
@@ -49,7 +49,7 @@ smart_runCustom <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL
   )
 
   # get the current index
-  Table_job_status <- view_job()
+  Table_job_status <- view_job(path = job_log_path)
   current_index = max(Table_job_status$index)
 
   # run the code in the job
@@ -64,19 +64,19 @@ smart_runCustom <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL
     while (TRUE) {
 
       # read the job log
-      Table_job_status <- view_job()
+      Table_job_status <- smartr::view_job(path = job_log_path)
 
       # how many models are running
       Table_running <- Table_job_status %>%
-        filter(status == "running")
+        dplyr::filter(status == "running")
 
       # how many cores have been used
       usingCore = sum(Table_running$core)
 
       # adjust the waiting list
       Table_waiting <- Table_job_status %>%
-        filter(status == "pending") %>%
-        arrange(priority, index)
+        dplyr::filter(status == "pending") %>%
+        dplyr::arrange(priority, index)
 
       # get the waiting index
       WaitIndex = which(Table_waiting$index == current_index)
@@ -94,7 +94,7 @@ smart_runCustom <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL
         break
       } else {
         # update progress bar
-        setTxtProgressBar(pb, value = job_index - WaitIndex)
+        setTxtProgressBar(pb, value = current_index - WaitIndex)
         # wait for a while to check the job log
         Sys.sleep(checkInt * WaitIndex + runif(1, 0,5))
       }
@@ -104,10 +104,10 @@ smart_runCustom <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL
 
     # print the start time
     start_time = Sys.time()
-    message(str_glue("The task starts to run at {start_time}"))
+    message(paste0("The task starts to run at", start_time))
 
     # update the job log
-    update_job(
+    smartr::update_job(
       current_index,
       status = "running",
       path = job_log_path
@@ -115,16 +115,12 @@ smart_runCustom <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL
 
     tryCatch(
       expr = {
-        # Adjust the status of the model as running.
-        Table_job_status <- read_rds(log_file)
-        Table_job_status[which(Table_job_status$index == job_index), "status"] = "running"
-        write_rds(Table_job_status, log_file)
 
         # Run the model
         eval(parse(text = code_str))
 
         # Adjust the status of the model as completed.
-        update_job(
+        smartr::update_job(
           current_index,
           status = "completed",
           path = job_log_path
@@ -136,7 +132,7 @@ smart_runCustom <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL
       error = function(e){
 
         # Adjust the status of the model as running.
-        update_job(
+        smartr::update_job(
           current_index,
           status = "failed",
           path = job_log_path
@@ -150,8 +146,8 @@ smart_runCustom <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL
       finally = {
         # print the end time
         end_time = Sys.time()
-        message(str_glue("The task has done at {end_time}"))
-        message(str_glue("It takes {round(as.numeric(end_time - start_time, units = 'hours'),2)} hours."))
+        message(paste0("The task has done at", end_time))
+        message(paste0("It takes", round(as.numeric(end_time - start_time, units = 'hours'),2), "hours."))
       }
     )
 

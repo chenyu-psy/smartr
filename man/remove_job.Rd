@@ -4,10 +4,12 @@
 \alias{remove_job}
 \title{Remove job(s) from the job log}
 \usage{
-remove_job(.x)
+remove_job(.x, path = NULL)
 }
 \arguments{
 \item{.x}{The index or name of the job to be removed.}
+
+\item{path}{The path to the job log.}
 }
 \description{
 This function will remove job(s) from the job log.

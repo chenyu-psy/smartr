@@ -4,10 +4,12 @@
 \alias{view_job}
 \title{View the status of the job}
 \usage{
-view_job(.x = NULL)
+view_job(.x = NULL, path = NULL)
 }
 \arguments{
 \item{.x}{The index or name of the job. If NULL, return all jobs.}
+
+\item{path}{The path to the job log.}
 }
 \value{
 A data frame containing the status of the job.

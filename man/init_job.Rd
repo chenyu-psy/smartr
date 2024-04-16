@@ -6,6 +6,9 @@
 \usage{
 init_job(path = NULL)
 }
+\arguments{
+\item{path}{The path to the job log.}
+}
 \description{
 This function will create a data frame including model information and store it as a temporary file.
 }

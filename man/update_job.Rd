@@ -4,12 +4,14 @@
 \alias{update_job}
 \title{Update the job status}
 \usage{
-update_job(.x, status)
+update_job(.x, status, path = NULL)
 }
 \arguments{
 \item{.x}{The index or name of the job.}
 
 \item{status}{The status of the job.}
+
+\item{path}{The path to the job log.}
 }
 \description{
 This function will update the status of the job.
