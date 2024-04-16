@@ -2,7 +2,10 @@
 % Please edit documentation in R/smart_runCustom.R
 \name{smart_runCustom}
 \alias{smart_runCustom}
-\title{A smart function which can find a appropriate time to launch input function}
+\title{if the model are in the first place
+if there are sufficient cores
+if `untilFinished` is FALSE, run the model
+otherwise, wait for a while and check the job log again}
 \usage{
 smart_runCustom(
   ...,
@@ -14,39 +17,9 @@ smart_runCustom(
   name = NULL
 )
 }
-\arguments{
-\item{maxCore}{a number. How many cores are available on this computer.}
-
-\item{priority}{a number. The default is 1, higher number indicates higher priority.
-Models with higher priority will be launched in advance.}
-
-\item{checkInt}{a number. How long would the function check the job log. The default value is 30 seconds.}
-
-\item{name}{a string. The name of the file.}
-
-\item{formula}{a formula. The formula that you want to input into `brm` function.}
-
-\item{data}{a data.frame. The data that you want to use to train the model.}
-
-\item{args}{a list. All the other arguments that you want to input into `brm` function.}
-
-\item{log_path}{a folder path. Where do you want to save your job log file.}
-}
-\value{
-There is no return. The model will be saved as a file automatically.
-
-
+\description{
 if the model are in the first place
 if there are sufficient cores
 if `untilFinished` is FALSE, run the model
 otherwise, wait for a while and check the job log again
-}
-\description{
-This is a function used to running `brm` package in job environment.
-The function relies on job log file. It will detect how many jobs are running
-and how many cores are available on the computer.
-Only when the computer has sufficient free cores and the model is in the first sequence, the model will start.
-}
-\author{
-Chenyu Li
 }

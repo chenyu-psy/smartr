@@ -56,7 +56,7 @@ smart_runCustom <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL
 
     # set up the progress bar
     message("\nThe task is now in the waiting list ...")
-    pb = txtProgressBar(min = 0, max = job_index, initial = 0, style = 3)
+    pb = txtProgressBar(min = 0, max = current_index, initial = 0, style = 3)
 
     # check how many models are running,
     # wait until the model meet the running condition
