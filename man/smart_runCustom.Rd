@@ -2,10 +2,7 @@
 % Please edit documentation in R/smart_runCustom.R
 \name{smart_runCustom}
 \alias{smart_runCustom}
-\title{if the model are in the first place
-if there are sufficient cores
-if `untilFinished` is FALSE, run the model
-otherwise, wait for a while and check the job log again}
+\title{Run the code in parallel with the waiting list}
 \usage{
 smart_runCustom(
   ...,
@@ -13,13 +10,26 @@ smart_runCustom(
   core = 1,
   maxCore = NULL,
   priority = 1,
-  checkInt = 19,
+  checkInt = 17,
   name = NULL
 )
 }
+\arguments{
+\item{...}{The code to run in parallel.}
+
+\item{untilFinished}{Logical. If `TRUE`, the code will not run until the previous code is finished.}
+
+\item{core}{The number of cores required to run the code.}
+
+\item{maxCore}{The maximum number of cores that can be used to run the code.}
+
+\item{priority}{The priority of the code. The code with a higher priority will be run first.}
+
+\item{checkInt}{The interval to check the job log.}
+
+\item{name}{The name of the job.}
+}
 \description{
-if the model are in the first place
-if there are sufficient cores
-if `untilFinished` is FALSE, run the model
-otherwise, wait for a while and check the job log again
+This function is used to run the code in parallel with the waiting list.
+It relies on the `job` package to manage the job log.
 }

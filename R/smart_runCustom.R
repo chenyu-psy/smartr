@@ -1,5 +1,20 @@
 
-smart_runCustom <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL, priority = 1,  checkInt = 19, name = NULL){
+#' Run the code in parallel with the waiting list
+#'
+#'@description This function is used to run the code in parallel with the waiting list.
+#'It relies on the `job` package to manage the job log.
+#'
+#'@param ... The code to run in parallel.
+#'@param untilFinished Logical. If `TRUE`, the code will not run until the previous code is finished.
+#'@param core The number of cores required to run the code.
+#'@param maxCore The maximum number of cores that can be used to run the code.
+#'@param priority The priority of the code. The code with a higher priority will be run first.
+#'@param checkInt The interval to check the job log.
+#'@param name The name of the job.
+#'
+#'@export
+#'
+smart_runCustom <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL, priority = 1,  checkInt = 17, name = NULL){
 
   # read the job log
   job_log_path = tempdir()
