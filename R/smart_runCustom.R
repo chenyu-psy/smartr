@@ -28,6 +28,11 @@ smart_runCustom <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL
     stop("The current model requires more cores than the maximum number of cores available on the computer.")
   }
 
+  # if the name is not defined, generate a random name
+  if (is.null(name)) {
+    name = ids::random_id(n=1,bytes=5)
+  }
+
   # get the code
   args = match.call()[-1]  # args excluding function name
   if (length(args) == 0)
@@ -41,7 +46,7 @@ smart_runCustom <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL
 
   # append the job to the job log
   append_job(
-    name = ids::random_id(n=1,bytes=5),
+    name = name,
     useCore = core,
     untilFinished = FALSE,
     priority = priority,
@@ -152,7 +157,7 @@ smart_runCustom <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL
     )
 
 
-  })
+  },import = "auto", title = name)
 
   Sys.sleep(9)
 
