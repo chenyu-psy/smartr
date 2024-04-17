@@ -22,9 +22,9 @@ view_job <- function(.x=NULL, path=NULL) {
   Table_status = readRDS(file_path)
 
   if (is.character(.x)) {
-    Table_status %>% filter(name %in% .x) %>% return()
+    Table_status %>% dplyr::filter(name %in% .x) %>% return()
   } else if (is.numeric(.x)) {
-    Table_status %>% filter(index %in% .x) %>% return()
+    Table_status %>% dplyr::filter(index %in% .x) %>% return()
   } else if (is.null(.x)) {
     return(Table_status)
   }

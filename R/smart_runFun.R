@@ -127,7 +127,7 @@ smart_runFun <- function(
         # update progress bar
         setTxtProgressBar(pb, value = current_index - WaitIndex)
         # wait for a while to check the job log
-        Sys.sleep(checkInt * WaitIndex + runif(1, 0,5))
+        Sys.sleep(checkInt * WaitIndex + stats::runif(1, 0,5))
       }
     }
 

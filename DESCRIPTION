@@ -10,12 +10,12 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports:
-  magrittr,
-  dplyr,
-  stringr,
-  httr,
-  jsonlite,
-  job
+    magrittr,
+    dplyr,
+    stringr,
+    httr,
+    jsonlite,
+    job
 Suggests:
     testthat,
     knitr,
