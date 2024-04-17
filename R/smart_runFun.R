@@ -12,10 +12,15 @@
 #'@param priority The priority of the function The code with a higher priority will be run first.
 #'@param checkInt The interval to check the job log.
 #'@param name The name of the job.
+#'@param export The name of the object to export to the global environment.
 #'
 #'@export
 #'
-smart_runFun <- function(fun, args, untilFinished = FALSE, cores = NULL, maxCore = NULL, priority = 1,  checkInt = 17, name = NULL){
+smart_runFun <- function(
+    fun, args,
+    untilFinished = FALSE, cores = NULL,maxCore = NULL,
+    priority = 1,checkInt = 17, name = NULL,
+    export = FALSE){
 
   # read the job log
   job_log_path = tempdir()
@@ -139,7 +144,11 @@ smart_runFun <- function(fun, args, untilFinished = FALSE, cores = NULL, maxCore
       expr = {
 
         # Run the model
-        do.call(fun, args)
+        results <- do.call(fun, args)
+
+        if (is.character(export)) assign(export, results, envir = environment())
+
+        rm(results)
 
         # Adjust the status of the model as completed.
         smartr::update_job(

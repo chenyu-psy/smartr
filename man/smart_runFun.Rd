@@ -12,7 +12,8 @@ smart_runFun(
   maxCore = NULL,
   priority = 1,
   checkInt = 17,
-  name = NULL
+  name = NULL,
+  export = FALSE
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ smart_runFun(
 \item{checkInt}{The interval to check the job log.}
 
 \item{name}{The name of the job.}
+
+\item{export}{The name of the object to export to the global environment.}
 }
 \description{
 This function is used to run the code in parallel with the waiting list.
