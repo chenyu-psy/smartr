@@ -9,6 +9,8 @@
 #'
 #'@export
 #'
+#'@keyword Internal
+#'
 update_job <- function(.x, status, path=NULL) {
 
   # read the job log

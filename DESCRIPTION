@@ -12,8 +12,6 @@ LazyData: true
 Imports:
   magrittr,
   dplyr,
-  tidyr,
   stringr,
-  rlang,
   job
 RoxygenNote: 7.3.1
