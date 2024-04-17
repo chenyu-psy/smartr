@@ -62,7 +62,7 @@ smart_run <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL, prio
   # append the job to the job log
   append_job(
     name = name,
-    useCore = core,
+    cores = core,
     untilFinished = FALSE,
     priority = priority,
     path = job_log_path
