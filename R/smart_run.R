@@ -14,7 +14,7 @@
 #'
 #'@export
 #'
-smart_runCustom <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL, priority = 1,  checkInt = 17, name = NULL){
+smart_run <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL, priority = 1,  checkInt = 17, name = NULL){
 
   # read the job log
   job_log_path = tempdir()
