@@ -35,7 +35,7 @@ smart_runFun <- function(fun, args, untilFinished = FALSE, cores = NULL, maxCore
   }
 
   # if cores is only defined in args, assign the value to cores
-  if (!is.null(cores) & "cores" %in% names(args)) {
+  if (is.null(cores) & "cores" %in% names(args)) {
     cores = args$cores
   } else {
     cores = 1
@@ -86,7 +86,7 @@ smart_runFun <- function(fun, args, untilFinished = FALSE, cores = NULL, maxCore
     while (TRUE) {
 
       # read the job log
-      Table_job_status <- smartr::view_job(path = job_log_path)
+      Table_job_status <- view_job(path = job_log_path)
 
       # how many models are running
       Table_running <- Table_job_status %>%
@@ -129,7 +129,7 @@ smart_runFun <- function(fun, args, untilFinished = FALSE, cores = NULL, maxCore
     message(paste0("\nThe task starts to run at ", start_time))
 
     # update the job log
-    smartr::update_job(
+    update_job(
       current_index,
       status = "running",
       path = job_log_path
