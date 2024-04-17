@@ -52,11 +52,11 @@ smart_run(
 
 ## Functions
 
-1. `init_job` : initialize a job log
+There also are a few functions to help you manage the job log:
+
+1. `init_job` : Initialize a job log or clean the job log.
 2. `view_job` : view the job log
-3. `update_job` : update the specific jobs from the job log
-4. `remove_job` : remove the specific jobs from the job log
-5. `smart_run` : Run the custom code in the job; the code will not be executed if your machine is busy.
+3. `remove_job` : Remove the specific jobs from the job log
 
 # Data processing
 1. `mutate_form`: Add new columns to the data frame according to the provided formula.
