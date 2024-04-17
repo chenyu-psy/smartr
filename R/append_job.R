@@ -4,7 +4,7 @@
 #' @description This function will append a new job to the job log.
 #'
 #' @param name The name of the job.
-#' @param useCore The number of cores used by the job.
+#' @param cores The number of cores used by the job.
 #' @param untilFinished Boolean value indicating whether the job should not run
 #' until previous jobs are finished.
 #' @param priority The priority of the job.
@@ -12,7 +12,7 @@
 #'
 append_job <- function(
     name = NULL,
-    useCore = 1,
+    cores = 1,
     untilFinished = FALSE,
     priority = 0,
     path = NULL) {
@@ -36,7 +36,7 @@ append_job <- function(
   new_row = data.frame(
     index = index,
     name = name,
-    useCore = useCore,
+    cores = cores,
     untilFinished = untilFinished,
     priority = priority,
     status = "pending",

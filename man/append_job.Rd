@@ -6,7 +6,7 @@
 \usage{
 append_job(
   name = NULL,
-  useCore = 1,
+  cores = 1,
   untilFinished = FALSE,
   priority = 0,
   path = NULL
@@ -15,7 +15,7 @@ append_job(
 \arguments{
 \item{name}{The name of the job.}
 
-\item{useCore}{The number of cores used by the job.}
+\item{cores}{The number of cores used by the job.}
 
 \item{untilFinished}{Boolean value indicating whether the job should not run
 until previous jobs are finished.}
