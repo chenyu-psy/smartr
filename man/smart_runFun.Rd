@@ -6,7 +6,7 @@
 \usage{
 smart_runFun(
   fun,
-  ...,
+  args,
   untilFinished = FALSE,
   core = 1,
   maxCore = NULL,
@@ -18,7 +18,7 @@ smart_runFun(
 \arguments{
 \item{fun}{The function to run in parallel.}
 
-\item{...}{The arguments of the function to run in parallel.}
+\item{args}{The arguments of the function to run in parallel.}
 
 \item{untilFinished}{Logical. If `TRUE`, the function will not run until the previous code is finished.}
 

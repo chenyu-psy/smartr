@@ -5,7 +5,7 @@
 #'It relies on the `job` package to manage the job log.
 #'
 #'@param fun The function to run in parallel.
-#'@param ... The arguments of the function to run in parallel.
+#'@param args The arguments of the function to run in parallel.
 #'@param untilFinished Logical. If `TRUE`, the function will not run until the previous code is finished.
 #'@param core The number of cores required to run the function
 #'@param maxCore The maximum number of cores that can be used to run the function
@@ -15,7 +15,7 @@
 #'
 #'@export
 #'
-smart_runFun <- function(fun, ..., untilFinished = FALSE, core = 1, maxCore = NULL, priority = 1,  checkInt = 17, name = NULL){
+smart_runFun <- function(fun, args, untilFinished = FALSE, core = 1, maxCore = NULL, priority = 1,  checkInt = 17, name = NULL){
 
   # read the job log
   job_log_path = tempdir()
@@ -127,7 +127,7 @@ smart_runFun <- function(fun, ..., untilFinished = FALSE, core = 1, maxCore = NU
       expr = {
 
         # Run the model
-        do.call(fun, list(...))
+        do.call(fun, args)
 
         # Adjust the status of the model as completed.
         smartr::update_job(
