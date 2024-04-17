@@ -101,10 +101,10 @@ smart_run <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL, prio
       # get the waiting index
       WaitIndex = which(Table_waiting$index == current_index)
 
-      #' if the model are in the first place
-      #' if there are sufficient cores
-      #' if `untilFinished` is FALSE, run the model
-      #' otherwise, wait for a while and check the job log again
+      # if the model are in the first place
+      # if there are sufficient cores
+      # if `untilFinished` is FALSE, run the model
+      # otherwise, wait for a while and check the job log again
       running_check = WaitIndex == 1 & core <= (maxCore - usingCore) & !untilFinished
 
       if (running_check) {

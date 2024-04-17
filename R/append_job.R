@@ -10,8 +10,6 @@
 #' @param priority The priority of the job.
 #' @param path The path to the job log.
 #'
-#' @keyword Internal
-#'
 append_job <- function(
     name = NULL,
     useCore = 1,

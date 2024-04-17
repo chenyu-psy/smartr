@@ -14,4 +14,9 @@ Imports:
   dplyr,
   stringr,
   job
+Suggests:
+    testthat,
+    knitr,
+    rmarkdown,
+    ids
 RoxygenNote: 7.3.1
