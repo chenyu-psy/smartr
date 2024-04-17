@@ -1,15 +1,15 @@
 
-#' Run the code in parallel with the waiting list
+#' Run the function in job with the waiting list
 #'
 #'@description This function is used to run the code in parallel with the waiting list.
 #'It relies on the `job` package to manage the job log.
 #'
 #'@param fun The function to run in parallel.
 #'@param ... The arguments of the function to run in parallel.
-#'@param untilFinished Logical. If `TRUE`, the code will not run until the previous code is finished.
-#'@param core The number of cores required to run the code.
-#'@param maxCore The maximum number of cores that can be used to run the code.
-#'@param priority The priority of the code. The code with a higher priority will be run first.
+#'@param untilFinished Logical. If `TRUE`, the function will not run until the previous code is finished.
+#'@param core The number of cores required to run the function
+#'@param maxCore The maximum number of cores that can be used to run the function
+#'@param priority The priority of the function The code with a higher priority will be run first.
 #'@param checkInt The interval to check the job log.
 #'@param name The name of the job.
 #'

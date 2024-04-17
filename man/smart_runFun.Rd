@@ -2,7 +2,7 @@
 % Please edit documentation in R/smart_runFun.R
 \name{smart_runFun}
 \alias{smart_runFun}
-\title{Run the code in parallel with the waiting list}
+\title{Run the function in job with the waiting list}
 \usage{
 smart_runFun(
   fun,
@@ -20,13 +20,13 @@ smart_runFun(
 
 \item{...}{The arguments of the function to run in parallel.}
 
-\item{untilFinished}{Logical. If `TRUE`, the code will not run until the previous code is finished.}
+\item{untilFinished}{Logical. If `TRUE`, the function will not run until the previous code is finished.}
 
-\item{core}{The number of cores required to run the code.}
+\item{core}{The number of cores required to run the function}
 
-\item{maxCore}{The maximum number of cores that can be used to run the code.}
+\item{maxCore}{The maximum number of cores that can be used to run the function}
 
-\item{priority}{The priority of the code. The code with a higher priority will be run first.}
+\item{priority}{The priority of the function The code with a higher priority will be run first.}
 
 \item{checkInt}{The interval to check the job log.}
 
