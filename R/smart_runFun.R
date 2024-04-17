@@ -61,8 +61,11 @@ smart_runFun <- function(
     stop("The current model requires more cores than the maximum number of cores available on the computer.")
   }
 
-  # if the name is not defined, generate a random name
+  # if the name is not defined, either use the export name or generate a random name
   if (is.null(name)) {
+    if (is.character(export)) {
+      name = export
+    } else
     name = ids::random_id(n=1,bytes=5)
   }
 
@@ -108,11 +111,12 @@ smart_runFun <- function(
       # get the waiting index
       WaitIndex = which(Table_waiting$index == current_index)
 
-      # if the model are in the first place
-      # if there are sufficient cores
-      # if `untilFinished` is FALSE, run the model
-      # otherwise, wait for a while and check the job log again
-      running_check = WaitIndex == 1 & cores <= (maxCore - usingCore) & !untilFinished
+      # check if the model can be run
+      if (untilFinished) {
+        running_check = WaitIndex == 1 & cores <= (maxCore - usingCore) & nrow(Table_running) == 0
+      } else {
+        running_check = WaitIndex == 1 & cores <= (maxCore - usingCore)
+      }
 
       if (running_check) {
         # update the progress bar
