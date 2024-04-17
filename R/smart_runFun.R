@@ -4,7 +4,8 @@
 #'@description This function is used to run the code in parallel with the waiting list.
 #'It relies on the `job` package to manage the job log.
 #'
-#'@param ... The code to run in parallel.
+#'@param fun The function to run in parallel.
+#'@param ... The arguments of the function to run in parallel.
 #'@param untilFinished Logical. If `TRUE`, the code will not run until the previous code is finished.
 #'@param core The number of cores required to run the code.
 #'@param maxCore The maximum number of cores that can be used to run the code.
@@ -14,7 +15,7 @@
 #'
 #'@export
 #'
-smart_run <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL, priority = 1,  checkInt = 17, name = NULL){
+smart_runFun <- function(fun, ..., untilFinished = FALSE, core = 1, maxCore = NULL, priority = 1,  checkInt = 17, name = NULL){
 
   # read the job log
   job_log_path = tempdir()
@@ -47,17 +48,6 @@ smart_run <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL, prio
   if (is.null(name)) {
     name = ids::random_id(n=1,bytes=5)
   }
-
-  # get the code
-  args = match.call()[-1]  # args excluding function name
-  if (length(args) == 0)
-    stop("Must have exactly one code block.")
-  code = args[[1]]
-
-  # check whether the format of the code is correct
-  if (code[[1]] != quote(`{`))
-    stop("invalid code input. Did you remember to put the code in {curly brackets}?")
-  code_str = paste0(code[-1], collapse = "\n")
 
   # append the job to the job log
   append_job(
@@ -137,7 +127,7 @@ smart_run <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL, prio
       expr = {
 
         # Run the model
-        eval(parse(text = code_str))
+        do.call(fun, list(...))
 
         # Adjust the status of the model as completed.
         smartr::update_job(
