@@ -8,7 +8,7 @@
 #'@export
 init_job <- function(path = NULL) {
 
-  table_cols <- c("index", "name", "useCore", "untilFinished", "priority", "status", "startTime", "endTime", "duration")
+  table_cols <- c("index", "name", "cores", "untilFinished", "priority", "status", "startTime", "endTime", "duration")
 
   Table_status <- stats::setNames(data.frame(matrix(ncol = length(table_cols), nrow = 0)), table_cols)
 

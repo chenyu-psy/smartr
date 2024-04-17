@@ -8,7 +8,7 @@ smart_runFun(
   fun,
   args,
   untilFinished = FALSE,
-  core = 1,
+  cores = NULL,
   maxCore = NULL,
   priority = 1,
   checkInt = 17,
@@ -22,7 +22,7 @@ smart_runFun(
 
 \item{untilFinished}{Logical. If `TRUE`, the function will not run until the previous code is finished.}
 
-\item{core}{The number of cores required to run the function}
+\item{cores}{The number of cores required to run the function}
 
 \item{maxCore}{The maximum number of cores that can be used to run the function}
 

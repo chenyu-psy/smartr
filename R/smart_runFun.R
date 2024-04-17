@@ -7,7 +7,7 @@
 #'@param fun The function to run in parallel.
 #'@param args The arguments of the function to run in parallel.
 #'@param untilFinished Logical. If `TRUE`, the function will not run until the previous code is finished.
-#'@param core The number of cores required to run the function
+#'@param cores The number of cores required to run the function
 #'@param maxCore The maximum number of cores that can be used to run the function
 #'@param priority The priority of the function The code with a higher priority will be run first.
 #'@param checkInt The interval to check the job log.
@@ -15,7 +15,7 @@
 #'
 #'@export
 #'
-smart_runFun <- function(fun, args, untilFinished = FALSE, core = 1, maxCore = NULL, priority = 1,  checkInt = 17, name = NULL){
+smart_runFun <- function(fun, args, untilFinished = FALSE, cores = NULL, maxCore = NULL, priority = 1,  checkInt = 17, name = NULL){
 
   # read the job log
   job_log_path = tempdir()
@@ -29,17 +29,29 @@ smart_runFun <- function(fun, args, untilFinished = FALSE, core = 1, maxCore = N
   # Read the number of cores on the computer
   machineCore = parallel::detectCores(logical = FALSE)
 
+  # if cores is defined in both args and argument, stop the function
+  if (!is.null(cores) & "cores" %in% names(args)) {
+    stop("The cores is defined in both args and argument.")
+  }
+
+  # if cores is only defined in args, assign the value to cores
+  if (!is.null(cores) & "cores" %in% names(args)) {
+    cores = args$cores
+  } else {
+    cores = 1
+  }
+
   # if the maximum cores is not defined, read the maximum cores from the computer
   if (is.null(maxCore)) {
     maxCore = machineCore
   }
 
   # check if the current model requires more cores than the maximum number of cores available on the computer
-  if (core > maxCore) {
+  if (cores > maxCore) {
     stop("The current model requires more cores than the maximum number of cores available on the computer.")
   }
 
-  # check whether the maxCore was smaller than the need of the core
+  # check whether the maxCore was smaller than the need of the cores
   if (maxCore > machineCore) {
     stop("The current model requires more cores than the maximum number of cores available on the computer.")
   }
@@ -52,7 +64,7 @@ smart_runFun <- function(fun, args, untilFinished = FALSE, core = 1, maxCore = N
   # append the job to the job log
   append_job(
     name = name,
-    useCore = core,
+    useCore = cores,
     untilFinished = FALSE,
     priority = priority,
     path = job_log_path
@@ -81,7 +93,7 @@ smart_runFun <- function(fun, args, untilFinished = FALSE, core = 1, maxCore = N
         dplyr::filter(status == "running")
 
       # how many cores have been used
-      usingCore = sum(Table_running$core)
+      usingCore = sum(Table_running$cores)
 
       # adjust the waiting list
       Table_waiting <- Table_job_status %>%
@@ -95,7 +107,7 @@ smart_runFun <- function(fun, args, untilFinished = FALSE, core = 1, maxCore = N
       # if there are sufficient cores
       # if `untilFinished` is FALSE, run the model
       # otherwise, wait for a while and check the job log again
-      running_check = WaitIndex == 1 & core <= (maxCore - usingCore) & !untilFinished
+      running_check = WaitIndex == 1 & cores <= (maxCore - usingCore) & !untilFinished
 
       if (running_check) {
         # update the progress bar
