@@ -6,7 +6,7 @@
 #'
 #'@param ... The code to run in parallel.
 #'@param untilFinished Logical. If `TRUE`, the code will not run until the previous code is finished.
-#'@param core The number of cores required to run the code.
+#'@param cores The number of cores required to run the code.
 #'@param maxCore The maximum number of cores that can be used to run the code.
 #'@param priority The priority of the code. The code with a higher priority will be run first.
 #'@param checkInt The interval to check the job log.
@@ -14,7 +14,7 @@
 #'
 #'@export
 #'
-smart_run <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL, priority = 1,  checkInt = 17, name = NULL){
+smart_run <- function(..., untilFinished = FALSE, cores = 1, maxCore = NULL, priority = 1,  checkInt = 17, name = NULL){
 
   # read the job log
   job_log_path = tempdir()
@@ -34,11 +34,11 @@ smart_run <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL, prio
   }
 
   # check if the current model requires more cores than the maximum number of cores available on the computer
-  if (core > maxCore) {
+  if (cores > maxCore) {
     stop("The current model requires more cores than the maximum number of cores available on the computer.")
   }
 
-  # check whether the maxCore was smaller than the need of the core
+  # check whether the maxCore was smaller than the need of the cores
   if (maxCore > machineCore) {
     stop("The current model requires more cores than the maximum number of cores available on the computer.")
   }
@@ -62,7 +62,7 @@ smart_run <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL, prio
   # append the job to the job log
   append_job(
     name = name,
-    cores = core,
+    cores = cores,
     untilFinished = FALSE,
     priority = priority,
     path = job_log_path
@@ -91,7 +91,7 @@ smart_run <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL, prio
         dplyr::filter(status == "running")
 
       # how many cores have been used
-      usingCore = sum(Table_running$core)
+      usingCore = sum(Table_running$cores)
 
       # adjust the waiting list
       Table_waiting <- Table_job_status %>%
@@ -101,11 +101,12 @@ smart_run <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL, prio
       # get the waiting index
       WaitIndex = which(Table_waiting$index == current_index)
 
-      # if the model are in the first place
-      # if there are sufficient cores
-      # if `untilFinished` is FALSE, run the model
-      # otherwise, wait for a while and check the job log again
-      running_check = WaitIndex == 1 & core <= (maxCore - usingCore) & !untilFinished
+      # check if the model can be run
+      if (untilFinished) {
+        running_check = WaitIndex == 1 & cores <= (maxCore - usingCore) & nrow(Table_running) == 0
+      } else {
+        running_check = WaitIndex == 1 & cores <= (maxCore - usingCore)
+      }
 
       if (running_check) {
         # update the progress bar

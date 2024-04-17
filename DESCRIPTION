@@ -13,10 +13,13 @@ Imports:
   magrittr,
   dplyr,
   stringr,
+  httr,
+  jsonlite,
   job
 Suggests:
     testthat,
     knitr,
     rmarkdown,
-    ids
+    ids,
+    purrr
 RoxygenNote: 7.3.1
