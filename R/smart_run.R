@@ -18,7 +18,7 @@ smart_run <- function(..., untilFinished = FALSE, core = 1, maxCore = NULL, prio
 
   # read the job log
   job_log_path = tempdir()
-  if (file.exists(job_log_path)) {
+  if (file.exists(file.path(job_log_path, "job_log.rds"))) {
     Table_job_status <- view_job(path = job_log_path)
   } else {
     init_job(path = job_log_path)
