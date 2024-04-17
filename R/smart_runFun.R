@@ -64,7 +64,7 @@ smart_runFun <- function(fun, args, untilFinished = FALSE, cores = NULL, maxCore
   # append the job to the job log
   append_job(
     name = name,
-    useCore = cores,
+    cores = cores,
     untilFinished = FALSE,
     priority = priority,
     path = job_log_path
