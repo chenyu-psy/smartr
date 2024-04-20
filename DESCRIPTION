@@ -12,6 +12,7 @@ LazyData: true
 Imports:
     magrittr,
     dplyr,
+    tidyr,
     stringr,
     httr,
     jsonlite,

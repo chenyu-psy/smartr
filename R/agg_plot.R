@@ -16,7 +16,7 @@
 #'
 #'@export
 #'
-aggregate_plot <- function(data, y, between = NULL, within = NULL, group = NULL, ci = 0.95) {
+agg_plot <- function(data, y, between = NULL, within = NULL, group = NULL, ci = 0.95) {
 
   ### first aggregate the data on the level of participants
   df <- data %>%

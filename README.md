@@ -76,6 +76,13 @@ data = read_json_data(c(file1, file2))
 
 ```
 
+## Aggregation relative functions
+
+The aggregation relative functions are designed to help you aggregate the data.
+
+1. `agg_plot`: Summarize the mean, standard deviation, and 95% confidence interval of the data for plotting.
+2. `agg_multinomial`: Aggregate the data for models using a multinomial data distribution.
+
 
 ## Model relative functions
 
