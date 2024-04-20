@@ -15,6 +15,10 @@ Imports:
     stringr,
     httr,
     jsonlite,
+    rlang,
+    brio,
+    utils,
+    stats,
     job
 Suggests:
     testthat,

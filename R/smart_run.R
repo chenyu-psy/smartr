@@ -12,6 +12,8 @@
 #'@param checkInt The interval to check the job log.
 #'@param name The name of the job.
 #'
+#'@importFrom rlang .data
+#'
 #'@export
 #'
 smart_run <- function(..., untilFinished = FALSE, cores = 1, maxCore = NULL, priority = 1,  checkInt = 17, name = NULL){
@@ -76,8 +78,8 @@ smart_run <- function(..., untilFinished = FALSE, cores = 1, maxCore = NULL, pri
   job::job({
 
     # set up the progress bar
-    message("\nThe task is now in the waiting list ...")
-    pb = txtProgressBar(min = 0, max = current_index, initial = 0, style = 3)
+    base::message("\nThe task is now in the waiting list ...")
+    pb = utils::txtProgressBar(min = 0, max = current_index, initial = 0, style = 3)
 
     # check how many models are running,
     # wait until the model meet the running condition
@@ -88,15 +90,15 @@ smart_run <- function(..., untilFinished = FALSE, cores = 1, maxCore = NULL, pri
 
       # how many models are running
       Table_running <- Table_job_status %>%
-        dplyr::filter(status == "running")
+        dplyr::filter(.data$status == "running")
 
       # how many cores have been used
-      usingCore = sum(Table_running$cores)
+      usingCore = base::sum(Table_running$cores)
 
       # adjust the waiting list
       Table_waiting <- Table_job_status %>%
-        dplyr::filter(status == "pending") %>%
-        dplyr::arrange(priority, index)
+        dplyr::filter(.data$status == "pending") %>%
+        dplyr::arrange(.data$priority, .data$index)
 
       # get the waiting index
       WaitIndex = which(Table_waiting$index == current_index)
@@ -110,22 +112,22 @@ smart_run <- function(..., untilFinished = FALSE, cores = 1, maxCore = NULL, pri
 
       if (running_check) {
         # update the progress bar
-        setTxtProgressBar(pb, value = current_index)
+        utils::setTxtProgressBar(pb, value = current_index)
         close(pb)
         break
       } else {
         # update progress bar
-        setTxtProgressBar(pb, value = current_index - WaitIndex)
+        utils::setTxtProgressBar(pb, value = current_index - WaitIndex)
         # wait for a while to check the job log
-        Sys.sleep(checkInt * WaitIndex + runif(1, 0,5))
+        base::Sys.sleep(checkInt * WaitIndex + stats::runif(1, 0,5))
       }
     }
 
     # start running the model --------------------------------------------------
 
     # print the start time
-    start_time = Sys.time()
-    message(paste0("\nThe task starts to run at ", start_time))
+    start_time = base::Sys.time()
+    base::message(base::paste0("\nThe task starts to run at ", start_time))
 
     # update the job log
     smartr::update_job(
@@ -138,7 +140,7 @@ smart_run <- function(..., untilFinished = FALSE, cores = 1, maxCore = NULL, pri
       expr = {
 
         # Run the model
-        eval(parse(text = code_str))
+        base::eval(base::parse(text = code_str))
 
         # Adjust the status of the model as completed.
         smartr::update_job(
@@ -160,21 +162,21 @@ smart_run <- function(..., untilFinished = FALSE, cores = 1, maxCore = NULL, pri
         )
 
         # message error
-        message(e)
+        base::message(e)
 
         return(NA)
       },
       finally = {
         # print the end time
-        end_time = Sys.time()
-        message(paste0("\nThe task has done at ", end_time))
-        message(paste0("\nIt takes ", round(as.numeric(end_time - start_time, units = 'hours'),2), " hours."))
+        end_time = base::Sys.time()
+        base::message(paste0("\nThe task has done at ", end_time))
+        base::message(paste0("\nIt takes ", round(as.numeric(end_time - start_time, units = 'hours'),2), " hours."))
       }
     )
 
 
   },import = "auto", title = name)
 
-  Sys.sleep(9)
+  base::Sys.sleep(9)
 
 }

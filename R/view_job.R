@@ -9,6 +9,8 @@
 #'
 #' @return A data frame containing the status of the job.
 #'
+#' @importFrom rlang .data
+#'
 #' @export
 #'
 view_job <- function(.x=NULL, path=NULL) {
@@ -22,9 +24,9 @@ view_job <- function(.x=NULL, path=NULL) {
   Table_status = readRDS(file_path)
 
   if (is.character(.x)) {
-    Table_status %>% dplyr::filter(name %in% .x) %>% return()
+    Table_status %>% dplyr::filter(.data$name %in% .x) %>% return()
   } else if (is.numeric(.x)) {
-    Table_status %>% dplyr::filter(index %in% .x) %>% return()
+    Table_status %>% dplyr::filter(.data$index %in% .x) %>% return()
   } else if (is.null(.x)) {
     return(Table_status)
   }

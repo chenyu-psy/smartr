@@ -8,6 +8,8 @@
 #'
 #' @param path The path to the job log.
 #'
+#' @importFrom rlang .data
+#'
 #' @export
 remove_job <- function(.x, path = NULL) {
 
@@ -21,9 +23,9 @@ remove_job <- function(.x, path = NULL) {
 
   # remove the job
   if (is.numeric(.x)) {
-    Table_status = Table_status %>% dplyr::filter(!index %in% .x)
+    Table_status = Table_status %>% dplyr::filter(!.data$index %in% .x)
   } else if (is.character(.x)) {
-    Table_status = Table_status %in% dplyr::filter(!name %in% .x)
+    Table_status = Table_status %in% dplyr::filter(!.data$name %in% .x)
   } else {
     stop("The input must be either a numeric or a character.")
   }

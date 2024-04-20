@@ -11,6 +11,9 @@
 #' @param dataPath A path used to save data. If NUll, data will be saved in working directory.
 #'
 #' @return data.frame
+#'
+#' @importFrom rlang .data
+#'
 #' @export
 #'
 get_JATOS_data <- function(token, url = "https://coglab.xyz/jatos/api/v1/results", studyId, batchId, dataPath = NULL) {
@@ -40,7 +43,7 @@ get_JATOS_data <- function(token, url = "https://coglab.xyz/jatos/api/v1/results
     )
 
     # Unzip the downloaded file and extract the file names into a list
-    filelist = unzip(
+    filelist = utils::unzip(
       file_zip,
       exdir=file_unzip,
       overwrite = TRUE)
@@ -51,8 +54,8 @@ get_JATOS_data <- function(token, url = "https://coglab.xyz/jatos/api/v1/results
       dplyr::mutate(
         resultID = stringr::str_extract(file,"study_result_([0-9]+)"),
         componentID = stringr::str_extract(file,"comp-result_([0-9]+)"),
-        resultID = as.numeric(stringr::str_extract(resultID,"([0-9]+)")),
-        componentID = as.numeric(stringr::str_extract(componentID,"([0-9]+)")))
+        resultID = as.numeric(stringr::str_extract(.data$resultID,"([0-9]+)")),
+        componentID = as.numeric(stringr::str_extract(.data$componentID,"([0-9]+)")))
 
     # Read the metadata from the last file in the list (assuming it is in JSON format)
     metaData <- jsonlite::read_json(filelist[length(filelist)])$data[[1]]$studyResults
@@ -88,7 +91,7 @@ get_JATOS_data <- function(token, url = "https://coglab.xyz/jatos/api/v1/results
     # Combine the file data and metadata into a single data frame
     results <- info_table %>%
       dplyr::right_join(file_table) %>%
-      dplyr::filter(!is.na(resultID)) %>%
+      dplyr::filter(!is.na(.data$resultID)) %>%
       dplyr::mutate(size = file.info(file)$size/1024)
 
     outcome <- rbind(outcome, results)

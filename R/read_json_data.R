@@ -14,7 +14,7 @@ read_json_data <- function(files) {
   combined_text = ""
 
   # Iterate over each file in the list of files to read
-  combined_text <- purrr::map_vec(files, .f = read_file, .progress = TRUE)
+  combined_text <- purrr::map_vec(files, .f = brio::read_file, .progress = TRUE)
   single_text <- stringr::str_c(combined_text, collapse = "")
   modified_text <- gsub("\\}\\]\\s{0,}\\[\\{", "\\},\\{", single_text, perl = TRUE)
   data <- jsonlite::fromJSON(modified_text)

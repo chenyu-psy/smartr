@@ -14,6 +14,8 @@
 #'@param name The name of the job.
 #'@param export The name of the object to export to the global environment.
 #'
+#'@importFrom rlang .data
+#'
 #'@export
 #'
 smart_runFun <- function(
@@ -87,7 +89,7 @@ smart_runFun <- function(
 
     # set up the progress bar
     message("\nThe task is now in the waiting list ...")
-    pb = txtProgressBar(min = 0, max = current_index, initial = 0, style = 3)
+    pb = utils::txtProgressBar(min = 0, max = current_index, initial = 0, style = 3)
 
     # check how many models are running,
     # wait until the model meet the running condition
@@ -98,15 +100,15 @@ smart_runFun <- function(
 
       # how many models are running
       Table_running <- Table_job_status %>%
-        dplyr::filter(status == "running")
+        dplyr::filter(.data$status == "running")
 
       # how many cores have been used
       usingCore = sum(Table_running$cores)
 
       # adjust the waiting list
       Table_waiting <- Table_job_status %>%
-        dplyr::filter(status == "pending") %>%
-        dplyr::arrange(priority, index)
+        dplyr::filter(.data$status == "pending") %>%
+        dplyr::arrange(.data$priority, .data$index)
 
       # get the waiting index
       WaitIndex = which(Table_waiting$index == current_index)
@@ -120,12 +122,12 @@ smart_runFun <- function(
 
       if (running_check) {
         # update the progress bar
-        setTxtProgressBar(pb, value = current_index)
+        utils::setTxtProgressBar(pb, value = current_index)
         close(pb)
         break
       } else {
         # update progress bar
-        setTxtProgressBar(pb, value = current_index - WaitIndex)
+        utils::setTxtProgressBar(pb, value = current_index - WaitIndex)
         # wait for a while to check the job log
         Sys.sleep(checkInt * WaitIndex + stats::runif(1, 0,5))
       }
