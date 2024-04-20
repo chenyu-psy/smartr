@@ -6,7 +6,7 @@ Author: person("Chenyu", "Li", email = "chenyu.li.hz@gmail.com", role = c("aut",
 Maintainer: The package maintainer <chenyu.li.hz@gmail.com>
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
-License: MIT + file LICENSE
+License: MIT
 Encoding: UTF-8
 LazyData: true
 Imports:
@@ -20,7 +20,9 @@ Imports:
     brio,
     utils,
     stats,
-    job
+    job,
+    brms,
+    bridgesampling
 Suggests:
     testthat,
     knitr,

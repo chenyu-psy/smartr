@@ -6,7 +6,8 @@
 #'
 #'@param fun The function to run in parallel.
 #'@param args The arguments of the function to run in parallel.
-#'@param untilFinished Logical. If `TRUE`, the function will not run until the previous code is finished.
+#'@param untilFinished Logical or index. If `TRUE`, the function will not run until all the previous functions are finished.
+#'If it is an index or a vector of indices, the function will not run until the functions with the same index are finished.
 #'@param cores The number of cores required to run the function
 #'@param maxCore The maximum number of cores that can be used to run the function
 #'@param priority The priority of the function The code with a higher priority will be run first.
@@ -20,8 +21,12 @@
 #'
 smart_runFun <- function(
     fun, args,
-    untilFinished = FALSE, cores = NULL,maxCore = NULL,
-    priority = 1,checkInt = 17, name = NULL,
+    untilFinished = FALSE,
+    cores = NULL,
+    maxCore = NULL,
+    priority = 1,
+    checkInt = 17,
+    name = NULL,
     export = FALSE){
 
   # read the job log
@@ -75,7 +80,7 @@ smart_runFun <- function(
   append_job(
     name = name,
     cores = cores,
-    untilFinished = FALSE,
+    untilFinished = untilFinished,
     priority = priority,
     path = job_log_path
   )
@@ -114,10 +119,19 @@ smart_runFun <- function(
       WaitIndex = which(Table_waiting$index == current_index)
 
       # check if the model can be run
-      if (untilFinished) {
+      if (is.numeric(untilFinished)) {
+
+        Table_check_status <- Table_job_status %>%
+          dplyr::filter(.data$index %in% untilFinished) %>%
+          dplyr::filter(.data$status == "completed")
+
+        running_check = WaitIndex == 1 & cores <= (maxCore - usingCore) & length(untilFinished) == nrow(Table_check_status)
+      } else if (untilFinished==TRUE) {
         running_check = WaitIndex == 1 & cores <= (maxCore - usingCore) & nrow(Table_running) == 0
-      } else {
+      } else if (untilFinished==FALSE) {
         running_check = WaitIndex == 1 & cores <= (maxCore - usingCore)
+      } else {
+        stop("The untilFinished argument should be either TRUE or FALSE or a numeric vector.")
       }
 
       if (running_check) {
