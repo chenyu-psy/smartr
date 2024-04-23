@@ -69,7 +69,7 @@ get_JATOS_data <- function(token, url = "https://coglab.xyz/jatos/api/v1/results
       # start time, end time and duration
       startTime = metaData[[a]]$startDate
       if (is.null(startTime)) {
-        startTime = NA
+        info_table[a, "startTime"] = NA
       } else {
         startTime = as.POSIXct(startTime/1000, origin = "1970-01-01")
         info_table[a, "startTime"] = startTime
@@ -77,7 +77,8 @@ get_JATOS_data <- function(token, url = "https://coglab.xyz/jatos/api/v1/results
 
       endTime = metaData[[a]]$endDate
       if (is.null(endTime)) {
-        endTime = NA
+        info_table[a, "endTime"] = NA
+        info_table[a, "duration"] = NA
       } else {
         endTime = as.POSIXct(endTime/1000, origin = "1970-01-01")
         info_table[a, "endTime"] = endTime
