@@ -86,9 +86,10 @@ agg_plot <- function(data, y, between = NULL, within = NULL, group = NULL, ci = 
     df <- df %>%
       dplyr::left_join(filter_conditions) %>%
       dplyr::mutate(
-        mean = dplyr::if_else(.data$filter, NA, .data$mean),
-        se = dplyr::if_else(.data$filter, NA, .data$se),
-        ci = dplyr::if_else(.data$filter, NA, .data$ci)
+        filter = base::ifelse(is.na(.data$filter), FALSE, .data$filter),
+        mean = base::ifelse(.data$filter, NA, .data$mean),
+        se = base::ifelse(.data$filter, NA, .data$se),
+        ci = base::ifelse(.data$filter, NA, .data$ci)
       ) %>%
       dplyr::select(-.data$filter)
   }
