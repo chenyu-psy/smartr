@@ -234,13 +234,13 @@ seq_model_comparsion <- function(fun = brms::brm,
 
         # select columns and save the table
         Table_model_info <- Table_model_info %>%
-          dplyr::select(all_of(pars_names),
+          dplyr::select(dplyr::all_of(pars_names),
                         .data$comparison,
                         .data$BF,
                         .data$logBF,
                         .data$reliability,
                         .data$best_model)
-          write.csv(Table_model_info, save_path)
+        utils::write.csv(Table_model_info, save_path)
 
         ### update temporary table if the current parameter is not the last parameter
         if (par != pars_names[length(pars_names)]) {

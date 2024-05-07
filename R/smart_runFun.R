@@ -128,14 +128,14 @@ smart_runFun <- function(
       # adjust the waiting list
       Table_waiting <- Table_job_status %>%
         dplyr::filter(.data$status == "pending") %>%
-        dplyr::arrange(desc(.data$priority), desc(.data$index))
+        dplyr::arrange(dplyr::desc(.data$priority), dplyr::desc(.data$index))
 
       # get the waiting index
       WaitIndex = which(Table_waiting$index == current_index)
 
       # check if the model can be run
       untilIndex <- Table_waiting$untilFinished[WaitIndex]
-      untilIndex <- as.numeric(unlist(strsplit(untilIndex, ",")))
+      untilIndex <- as.numeric(unlist(base::strsplit(untilIndex, ",")))
       needCores <- Table_waiting$cores[WaitIndex]
       if (0 %in% untilIndex) {
 

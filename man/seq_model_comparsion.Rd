@@ -27,7 +27,7 @@ seq_model_comparsion(
 
 \item{form_fun}{The function to generate the formula. The default is `NULL`.}
 
-\item{model_fun}{The function to generate the model. The default is `NULL`. This parameter only supports the `bmm` model.}
+\item{model_fun}{The function to generate the model. This parameter only supports the `bmm` model.}
 
 \item{prior_fun}{The function to generate the prior. The default is `NULL`.}
 
