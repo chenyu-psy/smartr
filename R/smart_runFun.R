@@ -49,7 +49,7 @@ smart_runFun <- function(
   # if cores is only defined in args, assign the value to cores
   if (is.null(cores) & "cores" %in% names(args)) {
     cores = args$cores
-  } else {
+  } else if (is.null(cores)) {
     cores = 1
   }
 
@@ -76,11 +76,26 @@ smart_runFun <- function(
     name = ids::random_id(n=1,bytes=5)
   }
 
+  # if the untilFinished is not defined, set it to 0
+  if (is.null(untilFinished)) {
+    untilFinished = "0"
+  } else if (is.numeric(untilFinished)) {
+    untilFinished = paste(untilFinished,collapse=",")
+  } else if (untilFinished==FALSE) {
+    untilFinished = "0"
+  } else if (untilFinished==TRUE) {
+    if (nrow(Table_job_status)==0) {
+      untilFinished = "0"
+    } else {
+      untilFinished = paste(1:nrow(Table_job_status),collapse=",")
+    }
+  }
+
   # append the job to the job log
   append_job(
     name = name,
     cores = cores,
-    untilFinished = untilFinished,
+    untilFinished = paste(untilFinished,collapse=","),
     priority = priority,
     path = job_log_path
   )
@@ -113,25 +128,24 @@ smart_runFun <- function(
       # adjust the waiting list
       Table_waiting <- Table_job_status %>%
         dplyr::filter(.data$status == "pending") %>%
-        dplyr::arrange(.data$priority, .data$index)
+        dplyr::arrange(desc(.data$priority), desc(.data$index))
 
       # get the waiting index
       WaitIndex = which(Table_waiting$index == current_index)
 
       # check if the model can be run
-      if (is.numeric(untilFinished)) {
+      untilIndex <- Table_waiting$untilFinished[WaitIndex]
+      untilIndex <- as.numeric(unlist(strsplit(untilIndex, ",")))
+      needCores <- Table_waiting$cores[WaitIndex]
+      if (0 %in% untilIndex) {
 
-        Table_check_status <- Table_job_status %>%
-          dplyr::filter(.data$index %in% untilFinished) %>%
-          dplyr::filter(.data$status == "completed")
-
-        running_check = WaitIndex == 1 & cores <= (maxCore - usingCore) & length(untilFinished) == nrow(Table_check_status)
-      } else if (untilFinished==TRUE) {
-        running_check = WaitIndex == 1 & cores <= (maxCore - usingCore) & nrow(Table_running) == 0
-      } else if (untilFinished==FALSE) {
         running_check = WaitIndex == 1 & cores <= (maxCore - usingCore)
       } else {
-        stop("The untilFinished argument should be either TRUE or FALSE or a numeric vector.")
+        Table_check_status <- Table_job_status %>%
+          dplyr::filter(.data$index %in% untilIndex) %>%
+          dplyr::filter(.data$status == "completed")
+
+        running_check = WaitIndex == 1 & needCores <= (maxCore - usingCore) & length(untilIndex) == nrow(Table_check_status)
       }
 
       if (running_check) {
