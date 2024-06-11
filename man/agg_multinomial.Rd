@@ -20,7 +20,7 @@ agg_multinomial(
 
 \item{group}{The grouping variable}
 
-\item{DV_name}{The name of the dependent variable}
+\item{DV_name}{The name of the dependent variable, if NULL, the response variables will not be combined.}
 
 \item{nDV_name}{The name of the number of retrieval}
 
