@@ -63,7 +63,7 @@ get_JATOS_data <- function(token,
     )
 
     # Add new columns for extracted information
-    if (!is.na(extractInfo)) {
+    if (!is.null(extractInfo)) {
       for (col in extractInfo) {
         info_table[[col]] <- character()
       }
