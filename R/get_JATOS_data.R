@@ -16,20 +16,20 @@
 #'
 #' @export
 #'
-get_JATOS_data <- function(token, url = "https://coglab.xyz/jatos/api/v1/results", studyId, batchId, dataPath = NULL) {
-
-
-  if (is.null(dataPath)) dataPath = "./" # Set the default data path
+get_JATOS_data <- function(token,
+                           url = "https://coglab.xyz/jatos/api/v1/results",
+                           studyId,
+                           batchId,
+                           dataPath = NULL,
+                           extractInfo = NULL) {
+  if (is.null(dataPath))
+    dataPath = "./" # Set the default data path
 
   # Create the authorization header with the specified token
   headers = c(`Authorization` = stringr::str_glue("Bearer {token}"))
 
-  # Initialize the outcome data frame
-  outcome <- data.frame()
-
   # Read the data from the JATOS server
   for (batch in batchId) {
-
     # Create the file paths for the zipped and unzipped data
     file_zip <- stringr::str_glue("{tempdir()}/JATOS_DATA_{batch}.jrzip")
     file_unzip <- stringr::str_glue("{dataPath}JATOS_DATA_{batch}")
@@ -38,67 +38,126 @@ get_JATOS_data <- function(token, url = "https://coglab.xyz/jatos/api/v1/results
     # Also pass in the authorization header and write the response to a temporary file
     res <- httr::GET(
       url = stringr::str_glue("{url}?studyId={studyId}&batchId={batch}"),
-      httr::add_headers(.headers=headers),
+      httr::add_headers(.headers = headers),
       httr::write_disk(file_zip, overwrite = TRUE)
     )
 
     # Unzip the downloaded file and extract the file names into a list
-    filelist = utils::unzip(
-      file_zip,
-      exdir=file_unzip,
-      overwrite = TRUE)
+    filelist = utils::unzip(file_zip, exdir = file_unzip, overwrite = TRUE)
 
     # Extract relevant data from the file names and store in a data frame
     file_table <- data.frame(filelist) %>%
       dplyr::rename(file = filelist) %>%
       dplyr::mutate(
-        resultID = stringr::str_extract(file,"study_result_([0-9]+)"),
-        componentID = stringr::str_extract(file,"comp-result_([0-9]+)"),
-        resultID = as.numeric(stringr::str_extract(.data$resultID,"([0-9]+)")),
-        componentID = as.numeric(stringr::str_extract(.data$componentID,"([0-9]+)")))
+        resultID = stringr::str_extract(file, "study_result_([0-9]+)"),
+        componentID = stringr::str_extract(file, "comp-result_([0-9]+)"),
+        resultID = as.numeric(stringr::str_extract(.data$resultID, "([0-9]+)")),
+        componentID = as.numeric(stringr::str_extract(.data$componentID, "([0-9]+)"))
+      )
 
     # Read the metadata from the last file in the list (assuming it is in JSON format)
-    metaData <- jsonlite::read_json(filelist[length(filelist)])$data[[1]]$studyResults
+    metaData_path <- stringr::str_glue("{file_unzip}/metadata.json")
+    metaData <- jsonlite::read_json(metaData_path)$data[[1]]$studyResults
 
     # Extract relevant metadata from the metadata list and store in a data frame
-    info_table <- data.frame()
-    for (a in 1:length(metaData)) {
-      # ID
-      info_table[a, "resultID"] = metaData[[a]]$id
-      info_table[a, "componentID"] = metaData[[a]]$componentResults[[1]]$id
-      # start time, end time and duration
-      startTime = metaData[[a]]$startDate
-      if (is.null(startTime)) {
-        info_table[a, "startTime"] = NA
-      } else {
-        startTime = as.POSIXct(startTime/1000, origin = "1970-01-01")
-        info_table[a, "startTime"] = startTime
-      }
+    info_table <- data.frame(
+      studyId = numeric(),
+      batchId = numeric(),
+      resultId = numeric(),
+      componentId = numeric(),
+      studyState = character(),
+      startTime = POSIXct(),
+      endTime = POSIXct(),
+      duration = numeric(),
+      fileSize = numeric()
+    )
 
-      endTime = metaData[[a]]$endDate
-      if (is.null(endTime)) {
-        info_table[a, "endTime"] = NA
-        info_table[a, "duration"] = NA
-      } else {
-        endTime = as.POSIXct(endTime/1000, origin = "1970-01-01")
-        info_table[a, "endTime"] = endTime
-        duration = diff(c(startTime, endTime), units = "mins")
-        info_table[a, "duration"] = round(duration[[1]], 2)
+    # Add new columns with NA values
+    if (!is.na(extractInfo)) {
+      for (col in extractInfo) {
+        info_table[[col]] <- character()
       }
-      # Study State
-      info_table[a, "studyState"] = metaData[[a]]$studyState
     }
 
-    # Combine the file data and metadata into a single data frame
-    results <- info_table %>%
-      dplyr::right_join(file_table) %>%
-      dplyr::filter(!is.na(.data$resultID)) %>%
-      dplyr::mutate(size = file.info(file)$size/1024)
+    for (a in 1:length(metaData)) {
+      # result data
+      resultData = metaData[[a]]
 
-    outcome <- rbind(outcome, results)
+      for (c in 1:length(resultData$componentResults)) {
+        # component data
+        compData = resultData$componentResults[[c]]
 
+        # correct the start time and end time
+        if (is.null(compData$startDate)) {
+          startTime = NA
+        } else {
+          startTime = as.POSIXct(compData$startDate / 1000, origin = "1970-01-01")
+        }
+
+        if (is.null(compData$endDate)) {
+          endTime = NA
+          duration = NA
+        } else {
+          endTime = as.POSIXct(compData$endDate / 1000, origin = "1970-01-01")
+          duration = round(diff(c(startTime, endTime), units = "mins")[[1]], 2)
+        }
+
+        # check if the file is in the file list
+        file_path <- stringr::str_glue(
+          "{file_unzip}/study_result_{resultData$id}/comp-result_{compData$id}/data.txt"
+        )
+        file_path <- ifelse(file_path %in% filelist, file_path, NA)
+
+        # check the file size and participant ID
+        if (!is.na(file_path)) {
+          # Extract the information from the file
+          if (!is.null(extractInfo)) {
+            file <- suppressWarnings(readLines(file_path))
+
+            extractList <- list()
+
+            for (key in extractInfo) {
+              # Use sprintf to build a dynamic regex pattern
+              pattern <- sprintf('(?<="%s":")\\w+', key)
+
+              # Extract the value associated with the key
+              extractList[[key]] <- unique(str_extract_all(file, pattern)[[1]])
+            }
+          }
+
+          fileSize <- file.info(file_path)$size / 1024
+
+        } else {
+          extractList <- list()
+          fileSize <- NA
+        }
+
+        # Add the metadata to the data frame
+        info_table <- info_table %>%
+          dplyr::add_row(
+            studyId = studyId,
+            batchId = batch,
+            resultId = resultData$id,
+            componentId = compData$id,
+            studyState = compData$componentState,
+            startTime = startTime,
+            endTime = endTime,
+            duration = duration,
+            fileSize = fileSize
+          )
+
+        # Add extracted information to the data frame
+        if (!is.null(extractInfo)) {
+          for (key in extractInfo) {
+            info_table[[key]][nrow(info_table)] <- paste(extractList[[key]], collapse = ",")
+          }
+        }
+
+
+      }
+    }
   }
 
   # Return the combined data frame
-  return(outcome)
+  return(info_table)
 }
