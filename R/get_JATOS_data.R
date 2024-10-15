@@ -45,16 +45,6 @@ get_JATOS_data <- function(token,
     # Unzip the downloaded file and extract the file names into a list
     filelist = utils::unzip(file_zip, exdir = file_unzip, overwrite = TRUE)
 
-    # Extract relevant data from the file names and store in a data frame
-    file_table <- data.frame(filelist) %>%
-      dplyr::rename(file = filelist) %>%
-      dplyr::mutate(
-        resultID = stringr::str_extract(file, "study_result_([0-9]+)"),
-        componentID = stringr::str_extract(file, "comp-result_([0-9]+)"),
-        resultID = as.numeric(stringr::str_extract(.data$resultID, "([0-9]+)")),
-        componentID = as.numeric(stringr::str_extract(.data$componentID, "([0-9]+)"))
-      )
-
     # Read the metadata from the last file in the list (assuming it is in JSON format)
     metaData_path <- stringr::str_glue("{file_unzip}/metadata.json")
     metaData <- jsonlite::read_json(metaData_path)$data[[1]]$studyResults
@@ -72,7 +62,7 @@ get_JATOS_data <- function(token,
       fileSize = numeric()
     )
 
-    # Add new columns with NA values
+    # Add new columns for extracted information
     if (!is.na(extractInfo)) {
       for (col in extractInfo) {
         info_table[[col]] <- character()
