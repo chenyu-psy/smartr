@@ -59,6 +59,7 @@ get_JATOS_data <- function(token,
       startTime = POSIXct(),
       endTime = POSIXct(),
       duration = numeric(),
+      file = character(),
       fileSize = numeric()
     )
 
@@ -133,6 +134,7 @@ get_JATOS_data <- function(token,
             startTime = startTime,
             endTime = endTime,
             duration = duration,
+            file = file_path,
             fileSize = fileSize
           )
 
