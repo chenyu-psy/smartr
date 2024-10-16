@@ -112,7 +112,7 @@ get_JATOS_data <- function(token,
               pattern <- sprintf('(?<="%s":")\\w+', key)
 
               # Extract the value associated with the key
-              extractList[[key]] <- unique(str_extract_all(file, pattern)[[1]])
+              extractList[[key]] <- unique(stringr::str_extract_all(file, pattern)[[1]])
             }
           }
 

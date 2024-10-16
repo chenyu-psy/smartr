@@ -51,7 +51,7 @@ agg_multinomial <- function(
 
   if(is.null(DV_name)) {
     data_output <- data_sum %>%
-      dplyr::select(dplyr::all_of(group), all_of(responses), {{nDV_name}})
+      dplyr::select(dplyr::all_of(group), dplyr::all_of(responses), {{nDV_name}})
   } else {
 
     resp_matrix <- base::as.matrix(data_sum[, responses])

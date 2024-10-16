@@ -9,7 +9,8 @@ get_JATOS_data(
   url = "https://coglab.xyz/jatos/api/v1/results",
   studyId,
   batchId,
-  dataPath = NULL
+  dataPath = NULL,
+  extractInfo = NULL
 )
 }
 \arguments{
