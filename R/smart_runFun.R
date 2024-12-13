@@ -129,11 +129,8 @@ smart_runFun <- function(
       # adjust the waiting list
       Table_waiting <- Table_job_status %>%
         dplyr::filter(.data$status == "pending") %>%
-        dplyr::mutate(
-          rank = dplyr::dense_rank(
-            dplyr::desc(.data$priority) + dplyr::desc(.data$index)
-          )
-        )
+        dplyr::arrange(dplyr::desc(.data$priority), .data$index) %>%
+        dplyr::mutate(rank = dplyr::row_number())
 
       # get the waiting index
       WaitIndex = Table_waiting %>%
@@ -149,10 +146,9 @@ smart_runFun <- function(
         running_check = WaitIndex == 1 & cores <= (maxCore - usingCore)
       } else {
         Table_check_status <- Table_job_status %>%
-          dplyr::filter(.data$index %in% untilIndex) %>%
-          dplyr::filter(.data$status != "completed")
+          dplyr::filter(.data$index %in% untilIndex, .data$status != "completed")
 
-        not_completed = nrows(Table_check_status)
+        not_completed = nrow(Table_check_status)
 
         running_check = WaitIndex == 1 & needCores <= (maxCore - usingCore) & not_completed == 0
       }
@@ -164,7 +160,7 @@ smart_runFun <- function(
         break
       } else {
         # update the progress bar
-        progress_value = (nrow(Table_job_status) - WaitIndex + 1)/nrow(Table_job_status)
+        progress_value = (nrow(Table_job_status) - WaitIndex)/nrow(Table_job_status)
         utils::setTxtProgressBar(pb, value = progress_value)
         # wait for a while to check the job log
         Sys.sleep(checkInt * WaitIndex + stats::runif(1, 0,5))
