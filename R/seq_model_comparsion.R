@@ -98,8 +98,10 @@ seq_model_comparsion <- function(fun = brms::brm,
 
       # check if the model has been run, if so, skip
       Table_model_info <- readRDS(File_model_table)
-      if (sample_check & Table_model_info[i, "sample_ck"] == 1)
-        next
+      if (length(unique(Table_model_info[[par]])) > 1) {
+        if (sample_check & Table_model_info[i, "sample_ck"] == 1)
+          next
+      }
 
       # model name
       current_model_label <- paste0("Model ", i, ": ", par, "-", pars[[par]][i])
