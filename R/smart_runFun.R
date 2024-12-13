@@ -20,7 +20,8 @@
 #'@export
 #'
 smart_runFun <- function(
-    fun, args,
+    fun,
+    args,
     untilFinished = FALSE,
     cores = NULL,
     maxCore = NULL,
@@ -109,7 +110,7 @@ smart_runFun <- function(
 
     # set up the progress bar
     message("\nThe task is now in the waiting list ...")
-    pb = utils::txtProgressBar(min = 0, max = current_index, initial = 0, style = 3)
+    pb = utils::txtProgressBar(min = 0, max = 1, initial = 0, style = 3)
 
     # check how many models are running,
     # wait until the model meet the running condition
@@ -128,10 +129,16 @@ smart_runFun <- function(
       # adjust the waiting list
       Table_waiting <- Table_job_status %>%
         dplyr::filter(.data$status == "pending") %>%
-        dplyr::arrange(dplyr::desc(.data$priority), dplyr::desc(.data$index))
+        dplyr::mutate(
+          rank = dplyr::dense_rank(
+            dplyr::desc(.data$priority) + dplyr::desc(.data$index)
+          )
+        )
 
       # get the waiting index
-      WaitIndex = which(Table_waiting$index == current_index)
+      WaitIndex = Table_waiting %>%
+        dplyr::filter(.data$index == current_index) %>%
+        dplyr::pull(rank)
 
       # check if the model can be run
       untilIndex <- Table_waiting$untilFinished[WaitIndex]
@@ -143,19 +150,22 @@ smart_runFun <- function(
       } else {
         Table_check_status <- Table_job_status %>%
           dplyr::filter(.data$index %in% untilIndex) %>%
-          dplyr::filter(.data$status == "completed")
+          dplyr::filter(.data$status != "completed")
 
-        running_check = WaitIndex == 1 & needCores <= (maxCore - usingCore) & length(untilIndex) == nrow(Table_check_status)
+        not_completed = nrows(Table_check_status)
+
+        running_check = WaitIndex == 1 & needCores <= (maxCore - usingCore) & not_completed == 0
       }
 
+
       if (running_check) {
-        # update the progress bar
-        utils::setTxtProgressBar(pb, value = current_index)
+        utils::setTxtProgressBar(pb, value = 1)
         close(pb)
         break
       } else {
-        # update progress bar
-        utils::setTxtProgressBar(pb, value = current_index - WaitIndex)
+        # update the progress bar
+        progress_value = (nrow(Table_job_status) - WaitIndex + 1)/nrow(Table_job_status)
+        utils::setTxtProgressBar(pb, value = progress_value)
         # wait for a while to check the job log
         Sys.sleep(checkInt * WaitIndex + stats::runif(1, 0,5))
       }
