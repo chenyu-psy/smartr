@@ -90,6 +90,9 @@ seq_model_comparsion <- function(fun = brms::brm,
   for (pr in 1:length(pars)) {
     par <- names(pars)[pr]
 
+    # save the indices of the models and samples
+    indices_models_samples = c()
+
     # test assumptions for each parameter step by step
     for (i in 1:length(pars[[par]])) {
 
@@ -111,9 +114,11 @@ seq_model_comparsion <- function(fun = brms::brm,
                        par_names,
                        path,
                        iModel) {
+
+          # read the model table
           Table_model_info <- readRDS(path)
 
-          # Import the model information
+          # Import the model arguments
           if (!is.null(form_fun))
             args[["formula"]] <-
               do.call(form_fun, args = as.list(Table_model_info[iModel, par_names]))
@@ -152,6 +157,12 @@ seq_model_comparsion <- function(fun = brms::brm,
       index_model <-
         which(Job_info$name == current_model_label)
 
+      # save the indices of the models and samples
+      indices_models_samples = c(indices_models_samples, index_model)
+
+      # current sample label
+      current_sample_label <- paste0("Sample ", i, ": ", par, "-", pars[[par]][i])
+
 
       # bridge sampling
       smart_runFun(
@@ -187,8 +198,15 @@ seq_model_comparsion <- function(fun = brms::brm,
         ),
         maxCore = maxCore,
         priority = -(3*pr-1),
-        name = paste0("Sample ", i, ": ", par, "-", pars[[par]][i])
+        name = current_sample_label
       )
+
+    # get the index of sample
+    Job_info <- view_job()
+    index_sample <- which(Job_info$name == current_sample_label)
+
+    # save the indices of the models and samples
+    indices_models_samples = c(indices_models_samples, index_sample)
 
     }
 
@@ -279,7 +297,7 @@ seq_model_comparsion <- function(fun = brms::brm,
           saveRDS(Table_toBeTeseted, file = path)
         }
       },
-      untilFinished = TRUE,
+      untilFinished = indices_models_samples,
       args = list(
         pars_names = names(pars),
         par = par,
