@@ -49,45 +49,45 @@ seq_model_comparsion <- function(fun = brms::brm,
   # temporary file used to store the model information
   File_model_table <- tempfile(fileext = ".rds")
 
-  # original model
+  # Extract the best parameter combination
   Pars_best <- do.call(base::expand.grid, args = pars)[1,]
 
-  # All the assumptions that need to be tested for the parameter
-  input_pars <- as.list(Pars_best)
-  input_pars[[names(pars)[1]]] <-
-    unname(unlist(pars[names(pars)[1]]))
+  # Adjust input_pars for single or multiple arguments
+  if (length(pars) == 1) {
+    # For a single argument, keep the structure as a list with one element
+    input_pars <- pars
+  } else {
+    # For multiple arguments, use the first row of the expanded grid
+    input_pars <- as.list(Pars_best)
+    firs_par = names(pars)[1]
+    input_pars[[firs_par]] <- unname(unlist(pars[firs_par]))
+  }
 
-  Table_model_info <-
-    do.call(base::expand.grid, args = input_pars) %>%
-    dplyr::rowwise() %>%
+  Table_model_info <- do.call(base::expand.grid, args = input_pars) %>%
     dplyr::mutate(
-      part_name = base::paste(
-        names(.),
-        base::unlist(dplyr::c_across(1:base::ncol(.))),
-        sep = "",
-        collapse = "_"
+      part_name = apply(across(everything()), 1, function(row)
+        paste(names(row), row, sep = "", collapse = "_")
       ),
-      model_name = base::paste(model_name, .data$part_name, sep = "_"),
-      sample_name = base::paste(sample_name, .data$part_name, sep = "_"),
+      model_name = paste0(model_name, "_", part_name),
+      sample_name = paste0(sample_name, "_", part_name),
       comparison = NA,
       BF = NA,
       logBF = NA,
       reliability = NA,
-      best_model = NA
+      best_model = NA,
+      model_file = paste0(model_path, model_name, ".rds"),
+      sample_file = paste0(sample_path, sample_name, ".rds"),
+      model_ck = as.integer(file.exists(model_file)),
+      sample_ck = as.integer(file.exists(sample_file))
     ) %>%
-    dplyr::select(!.data$part_name) %>%
-    dplyr::rowwise() %>%
-    dplyr::mutate(
-      model_file = base::paste0(model_path, .data$model_name, ".rds"),
-      sample_file = base::paste0(sample_path, .data$sample_name, ".rds"),
-      model_ck = base::ifelse(file.exists(.data$model_file), 1, 0),
-      sample_ck = base::ifelse(file.exists(.data$sample_file), 1, 0)
-    )
+    dplyr::select(-part_name)
 
   base::saveRDS(Table_model_info, file = File_model_table)
 
   # test assumptions for each parameter
   for (pr in 1:length(pars)) {
+
+    # parameter name
     par <- names(pars)[pr]
 
     # save the indices of the models and samples
@@ -220,81 +220,83 @@ seq_model_comparsion <- function(fun = brms::brm,
         # set first model as the best model
         Table_model_info[1, "best_model"] = 1
 
-        # Compare models and calculate BF if there is more than one model.
+        # Compare models and calculate BF if there is more than one model
         if (nrow(Table_model_info) >= 2) {
           for (i in 2:nrow(Table_model_info)) {
+            # Get the index of the best model from the previous row
+            index_best_sample <- Table_model_info$best_model[i - 1]
 
-            # get the best model from the last row
-            index_best_sample = Table_model_info$best_model[i - 1]
+            # Extract sample names and file paths
+            name_best_sample <- Table_model_info$sample_name[index_best_sample]
+            name_current_sample <- Table_model_info$sample_name[i]
 
-            name_best_sample <-
-              Table_model_info[index_best_sample, "sample_name"]
-            name_current_sample <-
-              Table_model_info[i, "sample_name"]
+            file_best_sample <- Table_model_info$sample_file[index_best_sample]
+            file_current_sample <- Table_model_info$sample_file[i]
 
-            Sample_best <-
-              readRDS(as.character(Table_model_info[index_best_sample, "sample_file"]))
-            Sample_currect <-
-              readRDS(as.character(Table_model_info[i, "sample_file"]))
+            # Load the best and current samples
+            Sample_best <- readRDS(as.character(file_best_sample))
+            Sample_current <- readRDS(as.character(file_current_sample))
 
-            BF <- bridgesampling::bf(Sample_currect, Sample_best)
+            # Calculate Bayes Factor
+            BF <- bridgesampling::bf(Sample_current, Sample_best)
 
-            Table_model_info[i, "comparison"] = stringr::str_glue("Model {i} vs. Model {index_best_sample}")
-            Table_model_info[i, "BF"] = BF$bf_median_based
-            Table_model_info[i, "logBF"] = log(BF$bf_median_based)
-            Table_model_info[i, "reliability"] = paste(round(log(min(BF$bf)),2),round(log(max(BF$bf)),2),sep = " ~ ")
-            Table_model_info[i, "best_model"] = ifelse(BF$bf_median_based > favorBF, i, index_best_sample)
+            # Update Table_model_info with comparison details
+            Table_model_info[i, c("comparison", "BF", "logBF", "reliability", "best_model")] <- list(
+              stringr::str_glue("Model {i} vs. Model {index_best_sample}"),
+              BF$bf_median_based,
+              log(BF$bf_median_based),
+              paste0(round(log(min(BF$bf)), 2), " ~ ", round(log(max(BF$bf)), 2)),
+              ifelse(BF$bf_median_based > favorBF, i, index_best_sample)
+            )
           }
         }
 
-        # save the table
-        save_path = stringr::str_glue("{bf_path}BayesFactor_{par}.csv")
+        # Define the path for saving the Bayes Factor table
+        save_path <- stringr::str_glue("{bf_path}BayesFactor_{par}.csv")
 
-        # select columns and save the table
-        Table_model_info <- Table_model_info %>%
-          dplyr::select(dplyr::all_of(pars_names),
-                        .data$comparison,
-                        .data$BF,
-                        .data$logBF,
-                        .data$reliability,
-                        .data$best_model)
-        utils::write.csv(Table_model_info, save_path)
+        # Select relevant columns for the table
+        selected_columns <- c(pars_names, "comparison", "BF", "logBF", "reliability", "best_model")
+        Table_model_info_clean <- Table_model_info %>%
+          dplyr::select(dplyr::all_of(selected_columns))
 
-        ### update temporary table if the current parameter is not the last parameter
+        # Save the table as a CSV file
+        utils::write.csv(Table_model_info_clean, save_path)
+
+        # Update temporary table if the current parameter is not the last parameter
         if (par != pars_names[length(pars_names)]) {
-          Index_best_sample <-
-            as.numeric(Table_model_info[nrow(Table_model_info), "best_model"])
-          Pars_best <- Table_model_info[Index_best_sample,]
+          # Get the index and parameter values for the best model
+          index_best_sample <- as.numeric(Table_model_info[nrow(Table_model_info), "best_model"])
+          pars_best <- Table_model_info[index_best_sample, ]
+
+          # Determine the next parameter to test
           next_par <- pars_names[which(pars_names == par) + 1]
 
-          input_pars <-
-            as.list(Pars_best %>% dplyr::select(pars_names))
+          # Prepare input parameters for the next grid
+          input_pars <- pars_best %>% dplyr::select(pars_names) %>% as.list()
           input_pars[[next_par]] <- unname(unlist(pars[next_par]))
-          Table_toBeTeseted <-
-            do.call(expand.grid, args = input_pars) %>%
-            dplyr::rowwise() %>%
+
+          # Create the new table for testing
+          table_to_test <- do.call(expand.grid, args = input_pars) %>%
             dplyr::mutate(
-              part_name = paste(
-                names(.),
-                unlist(dplyr::c_across(1:ncol(.))),
-                sep = "",
-                collapse = "_"
+              part_name = apply(across(everything()), 1, function(row)
+                paste(names(row), row, sep = "", collapse = "_")
               ),
-              model_name = base::paste(model_name, .data$part_name, sep = "_"),
-              sample_name = base::paste(sample_name, .data$part_name, sep = "_"),
-              model_file = base::paste0(model_path, .data$model_name, ".rds"),
-              sample_file = base::paste0(sample_path, .data$sample_name, ".rds"),
-              model_ck = base::ifelse(file.exists(.data$model_file), 1, 0),
-              sample_ck = base::ifelse(file.exists(.data$sample_file), 1, 0),
+              model_name = paste0(model_name, "_", part_name),
+              sample_name = paste0(sample_name, "_", part_name),
+              model_file = paste0(model_path, model_name, ".rds"),
+              sample_file = paste0(sample_path, sample_name, ".rds"),
+              model_ck = as.integer(file.exists(model_file)),
+              sample_ck = as.integer(file.exists(sample_file)),
               comparison = NA,
               BF = NA,
               logBF = NA,
               reliability = NA,
               best_model = NA
             ) %>%
-            dplyr::select(!.data$part_name)
+            dplyr::select(-part_name)
 
-          saveRDS(Table_toBeTeseted, file = path)
+          # Save the updated table
+          saveRDS(table_to_test, file = path)
         }
       },
       untilFinished = indices_models_samples,
