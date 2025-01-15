@@ -21,7 +21,7 @@ parallel_model_comparsion(
 )
 }
 \arguments{
-\item{fun}{The function to run the model. The default is `brms::brm`.}
+\item{fun}{The function to run the model supports only the `brms` model and the `bmm` model.}
 
 \item{pars}{A list of parameters to compare. Each parameter is a list of values.}
 
@@ -40,8 +40,6 @@ parallel_model_comparsion(
 \item{model_path}{The path to store the model.}
 
 \item{sample_path}{The path to store the sample.}
-
-\item{bf_path}{The path to store the Bayes Factor.}
 
 \item{maxCore}{The maximum number of cores that can be used to run the function.}
 

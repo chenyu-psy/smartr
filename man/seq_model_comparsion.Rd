@@ -5,7 +5,7 @@
 \title{Run a sequence of model comparisons.}
 \usage{
 seq_model_comparsion(
-  fun = brms::brm,
+  fun,
   pars,
   form_fun = NULL,
   model_fun = NULL,
@@ -21,7 +21,7 @@ seq_model_comparsion(
 )
 }
 \arguments{
-\item{fun}{The function to run the model. The default is `brms::brm`.}
+\item{fun}{The function to run the model supports only the `brms` model and the `bmm` model.}
 
 \item{pars}{A list of parameters to compare. Each parameter is a list of values.}
 
