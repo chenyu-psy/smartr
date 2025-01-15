@@ -23,8 +23,6 @@ compare_each <- function(pars, sample_path, sample_prefix, favorBF = 3) {
       sample_file = paste0(sample_path, sample_prefix, "_", part_name, ".rds")
     )
 
-  Table_model_info$best_model[1] <- 1
-
   for (i in 1:nrow(Table_model_info)) {
 
     Sample_currect <- readRDS(as.character(Table_model_info[i, "sample_file"]))
