@@ -14,7 +14,6 @@
 #' @param model_name The name of the model. The default is `Model`.
 #' @param model_path The path to store the model.
 #' @param sample_path The path to store the sample.
-#' @param bf_path The path to store the Bayes Factor.
 #' @param maxCore The maximum number of cores that can be used to run the function.
 #' @param sample_check Logical. If `TRUE`, the function will check whether the sample exists. The default is `TRUE`.
 #'
@@ -170,67 +169,4 @@ parallel_model_comparsion <- function(
 
   }
 
-  # calculate BF ---------------------------------------------------------------
-
-  smart_runFun(
-    fun = function(pars_names, path, bf_path, favorBF) {
-      Table_model_info <- readRDS(path)
-
-      # set first model as the best model
-      Table_model_info[1, "best_model"] = 1
-
-      # Compare models and calculate BF if there is more than one model.
-      if (nrow(Table_model_info) >= 2) {
-        for (i in 2:nrow(Table_model_info)) {
-
-          # get the best model from the last row
-          index_best_sample = Table_model_info$best_model[i - 1]
-
-          name_best_sample <-
-            Table_model_info[index_best_sample, "sample_name"]
-          name_current_sample <-
-            Table_model_info[i, "sample_name"]
-
-          Sample_best <-
-            readRDS(as.character(Table_model_info[index_best_sample, "sample_file"]))
-          Sample_currect <-
-            readRDS(as.character(Table_model_info[i, "sample_file"]))
-
-          BF <- bridgesampling::bf(Sample_currect, Sample_best)
-
-          Table_model_info[i, c("comparison", "BF", "logBF", "reliability", "best_model")] <- list(
-            stringr::str_glue("Model {i} vs. Model {index_best_sample}"),
-            BF$bf_median_based,
-            log(BF$bf_median_based),
-            paste0(round(log(min(BF$bf)), 2), " ~ ", round(log(max(BF$bf)), 2)),
-            ifelse(BF$bf_median_based > favorBF, i, index_best_sample)
-          )
-        }
-      }
-
-      # save the table
-      save_path = stringr::str_glue("{bf_path}BayesFactor.csv")
-
-      # select columns and save the table
-      Table_model_info <- Table_model_info %>%
-        dplyr::select(dplyr::all_of(pars_names),
-                      .data$comparison,
-                      .data$BF,
-                      .data$logBF,
-                      .data$reliability,
-                      .data$best_model)
-      utils::write.csv(Table_model_info, save_path)
-    },
-    untilFinished = NULL,
-    args = list(
-      pars_names = names(pars),
-      path = File_model_table,
-      bf_path = bf_path,
-      favorBF = favorBF
-    ),
-    cores = 1,
-    maxCore = maxCore,
-    priority = 0,
-    name = "Bayes Factor"
-  )
 }
