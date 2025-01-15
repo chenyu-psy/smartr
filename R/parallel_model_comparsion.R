@@ -10,7 +10,6 @@
 #' @param model_fun The function to generate the model. This parameter only supports the `bmm` model.
 #' @param prior_fun The function to generate the prior. The default is `NULL`.
 #' @param args The arguments of the function to run in parallel.
-#' @param favorBF The favor of the Bayes Factor. The default is `3`.
 #' @param model_name The name of the model. The default is `Model`.
 #' @param model_path The path to store the model.
 #' @param sample_path The path to store the sample.
@@ -29,11 +28,9 @@ parallel_model_comparsion <- function(
     model_fun = NULL,
     prior_fun = NULL,
     args,
-    favorBF = 3,
     model_name = "Model",
     model_path,
     sample_path,
-    bf_path,
     maxCore = NULL,
     sample_check = TRUE) {
 
