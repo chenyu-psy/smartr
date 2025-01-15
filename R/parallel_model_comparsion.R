@@ -4,7 +4,7 @@
 #'
 #' @description This function is used to compare the models. The function will run the model in parallel and calculate the Bayes Factor.
 #'
-#' @param fun The function to run the model. The default is `brms::brm`.
+#' @param fun The function to run the model supports only the `brms` model and the `bmm` model.
 #' @param pars A list of parameters to compare. Each parameter is a list of values.
 #' @param form_fun The function to generate the formula. The default is `NULL`.
 #' @param model_fun The function to generate the model. This parameter only supports the `bmm` model.
@@ -50,33 +50,24 @@ parallel_model_comparsion <- function(
   File_model_table <- tempfile(fileext = ".rds")
 
   # Table for the model comparison
-  Table_model_info <-
-    do.call(base::expand.grid, args = pars) %>%
-    dplyr::rowwise() %>%
+  Table_model_info <- do.call(base::expand.grid, args = pars) %>%
     dplyr::mutate(
-      part_name = base::paste(
-        names(.),
-        base::unlist(dplyr::c_across(1:base::ncol(.))),
-        sep = "",
-        collapse = "_"
+      part_name = apply(across(everything()), 1, function(row)
+        paste(names(row), row, sep = "", collapse = "_")
       ),
-      model_name = base::paste(model_name, .data$part_name, sep = "_"),
-      sample_name = base::paste(sample_name, .data$part_name, sep = "_"),
+      model_name = paste0(model_name, "_", part_name),
+      sample_name = paste0(sample_name, "_", part_name),
       comparison = NA,
       BF = NA,
       logBF = NA,
       reliability = NA,
-      best_model = NA
+      best_model = NA,
+      model_file = paste0(model_path, model_name, ".rds"),
+      sample_file = paste0(sample_path, sample_name, ".rds"),
+      model_ck = as.integer(file.exists(model_file)),
+      sample_ck = as.integer(file.exists(sample_file))
     ) %>%
-    dplyr::select(!.data$part_name) %>%
-    dplyr::rowwise() %>%
-    dplyr::mutate(
-      model_file = base::paste0(model_path, .data$model_name, ".rds"),
-      sample_file = base::paste0(sample_path, .data$sample_name, ".rds"),
-      model_ck = base::ifelse(file.exists(.data$model_file), 1, 0),
-      sample_ck = base::ifelse(file.exists(.data$sample_file), 1, 0)
-    )
-
+    dplyr::select(-part_name)
 
   base::saveRDS(Table_model_info, file = File_model_table)
 
@@ -207,11 +198,13 @@ parallel_model_comparsion <- function(
 
           BF <- bridgesampling::bf(Sample_currect, Sample_best)
 
-          Table_model_info[i, "comparison"] = stringr::str_glue("Model {i} vs. Model {index_best_sample}")
-          Table_model_info[i, "BF"] = BF$bf_median_based
-          Table_model_info[i, "logBF"] = log(BF$bf_median_based)
-          Table_model_info[i, "reliability"] = paste(round(log(min(BF$bf)),2),round(log(max(BF$bf)),2),sep = " ~ ")
-          Table_model_info[i, "best_model"] = ifelse(BF$bf_median_based > favorBF, i, index_best_sample)
+          Table_model_info[i, c("comparison", "BF", "logBF", "reliability", "best_model")] <- list(
+            stringr::str_glue("Model {i} vs. Model {index_best_sample}"),
+            BF$bf_median_based,
+            log(BF$bf_median_based),
+            paste0(round(log(min(BF$bf)), 2), " ~ ", round(log(max(BF$bf)), 2)),
+            ifelse(BF$bf_median_based > favorBF, i, index_best_sample)
+          )
         }
       }
 

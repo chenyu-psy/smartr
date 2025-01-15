@@ -6,7 +6,7 @@
 #' In the same parameter, you can test multiple values. The function will automatically generate all the combinations of the parameters.
 #' the comparsion for the next parameter will be based on the best model of the previous parameter.
 #'
-#' @param fun The function to run the model. The default is `brms::brm`.
+#' @param fun The function to run the model supports only the `brms` model and the `bmm` model.
 #' @param pars A list of parameters to compare. Each parameter is a list of values.
 #' @param form_fun The function to generate the formula. The default is `NULL`.
 #' @param model_fun The function to generate the model. This parameter only supports the `bmm` model.
@@ -25,7 +25,7 @@
 #'@importFrom rlang .data
 #'@export
 #'
-seq_model_comparsion <- function(fun = brms::brm,
+seq_model_comparsion <- function(fun,
                                  pars,
                                  form_fun = NULL,
                                  model_fun = NULL,
