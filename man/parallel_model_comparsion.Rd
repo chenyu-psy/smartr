@@ -11,11 +11,9 @@ parallel_model_comparsion(
   model_fun = NULL,
   prior_fun = NULL,
   args,
-  favorBF = 3,
   model_name = "Model",
   model_path,
   sample_path,
-  bf_path,
   maxCore = NULL,
   sample_check = TRUE
 )
@@ -32,8 +30,6 @@ parallel_model_comparsion(
 \item{prior_fun}{The function to generate the prior. The default is `NULL`.}
 
 \item{args}{The arguments of the function to run in parallel.}
-
-\item{favorBF}{The favor of the Bayes Factor. The default is `3`.}
 
 \item{model_name}{The name of the model. The default is `Model`.}
 
