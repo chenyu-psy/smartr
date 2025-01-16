@@ -14,22 +14,22 @@ compare_logml <- function(pars, sample_path, sample_prefix) {
   # Table for the model comparison
   Table_model_info <- do.call(base::expand.grid, args = pars) %>%
     dplyr::mutate(
-      part_name = apply(across(everything()), 1, function(row)
+      part_name = apply(dplyr::across(dplyr::everything()), 1, function(row)
         paste(names(row), row, sep = "", collapse = "_")
       ),
       logml = NA,
-      sample_file = paste0(sample_path, sample_prefix, "_", part_name, ".rds")
+      sample_file = paste0(sample_path, sample_prefix, "_", .data$part_name, ".rds")
     )
 
   for (i in 1:nrow(Table_model_info)) {
 
     Sample_currect <- readRDS(as.character(Table_model_info[i, "sample_file"]))
 
-    Table_model_info[i, "logml"] = median(Sample_currect$logml)
+    Table_model_info[i, "logml"] = stats::median(Sample_currect$logml)
   }
 
   Table_model_info <- Table_model_info %>%
-    select(-c(part_name,sample_file))
+    dplyr::select(-c(.data$part_name, .data$sample_file))
 
   return(Table_model_info)
 }

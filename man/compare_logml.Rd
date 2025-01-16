@@ -2,7 +2,7 @@
 % Please edit documentation in R/compare_logml.R
 \name{compare_logml}
 \alias{compare_logml}
-\title{Compare logml of different models}
+\title{Compare log marginal likelihood of different models}
 \usage{
 compare_logml(pars, sample_path, sample_prefix)
 }
@@ -14,8 +14,8 @@ compare_logml(pars, sample_path, sample_prefix)
 \item{sample_prefix}{The prefix of the samples.}
 }
 \value{
-A table with the logml of the different models.
+A table with the log marginal likelihood of the different models.
 }
 \description{
-This function compares the logml of different models.
+This function compares the log marginal likelihood of different models.
 }

@@ -16,7 +16,7 @@ compare_best <- function(pars, sample_path, sample_prefix, favorBF = 3, shuffle 
   # Table for the model comparison
   Table_model_info <- do.call(base::expand.grid, args = pars) %>%
     dplyr::mutate(
-      part_name = apply(across(everything()), 1, function(row)
+      part_name = apply(dplyr::across(dplyr::everything()), 1, function(row)
         paste(names(row), row, sep = "", collapse = "_")
       ),
       comparison = NA,
@@ -24,7 +24,7 @@ compare_best <- function(pars, sample_path, sample_prefix, favorBF = 3, shuffle 
       logBF = NA,
       reliability = NA,
       best_model = NA,
-      sample_file = paste0(sample_path, sample_prefix, "_", part_name,".rds")
+      sample_file = paste0(sample_path, sample_prefix, "_", .data$part_name,".rds")
     )
 
   if (shuffle) {
@@ -56,7 +56,7 @@ compare_best <- function(pars, sample_path, sample_prefix, favorBF = 3, shuffle 
   }
 
   Table_model_info <- Table_model_info %>%
-    select(all_of(names(pars)), comparison, BF, logBF, reliability, best_model)
+    dplyr::select(dplyr::all_of(names(pars)), .data$comparison, .data$BF, .data$logBF, .data$reliability, .data$best_model)
 
   return(Table_model_info)
 

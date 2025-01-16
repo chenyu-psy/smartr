@@ -48,7 +48,7 @@ parallel_model_comparsion <- function(
   # Table for the model comparison
   Table_model_info <- do.call(base::expand.grid, args = pars) %>%
     dplyr::mutate(
-      part_name = apply(across(everything()), 1, function(row)
+      part_name = apply(dplyr::across(dplyr::everything()), 1, function(row)
         paste(names(row), row, sep = "", collapse = "_")
       ),
       model_name = paste0(model_name, "_", part_name),
@@ -58,12 +58,12 @@ parallel_model_comparsion <- function(
       logBF = NA,
       reliability = NA,
       best_model = NA,
-      model_file = paste0(model_path, model_name, ".rds"),
-      sample_file = paste0(sample_path, sample_name, ".rds"),
-      model_ck = as.integer(file.exists(model_file)),
-      sample_ck = as.integer(file.exists(sample_file))
+      model_file = paste0(model_path, .data$model_name, ".rds"),
+      sample_file = paste0(sample_path, .data$sample_name, ".rds"),
+      model_ck = as.integer(file.exists(.data$model_file)),
+      sample_ck = as.integer(file.exists(.data$sample_file))
     ) %>%
-    dplyr::select(-part_name)
+    dplyr::select(-.data$part_name)
 
   base::saveRDS(Table_model_info, file = File_model_table)
 

@@ -24,9 +24,10 @@ Imports:
     brms,
     bridgesampling
 Suggests:
-    testthat,
+    testthat (>= 3.0.0),
     knitr,
     rmarkdown,
     ids,
     purrr
 RoxygenNote: 7.3.2
+Config/testthat/edition: 3
