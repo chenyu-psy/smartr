@@ -129,11 +129,6 @@ smart_runFun <- function(
       # adjust the waiting list
       Table_waiting <- Table_job_status %>%
         dplyr::filter(.data$status == "pending") %>%
-        dplyr::mutate(priority = ifelse(
-          stringr::str_detect(.data$untilFinished, "0"),
-          max(0, .data$priority + 1),
-          .data$priority
-        )) %>%
         dplyr::arrange(dplyr::desc(.data$priority), .data$index) %>%
         dplyr::mutate(rank = dplyr::row_number())
 

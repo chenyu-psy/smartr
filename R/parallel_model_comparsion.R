@@ -117,7 +117,7 @@ parallel_model_comparsion <- function(
       ),
       cores = args$cores,
       maxCore = maxCore,
-      priority = 2,
+      priority = 1,
       name = current_model_label
     )
 
