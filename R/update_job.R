@@ -45,6 +45,7 @@ update_job <- function(.x, status, path=NULL) {
     Table_status[which(Table_status$index == .x), "duration"] = duration
   }
 
+  # update the status of the job
   Table_status[which(Table_status$index == .x), "status"] = status
 
   # save the job log
