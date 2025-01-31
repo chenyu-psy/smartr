@@ -161,7 +161,7 @@ smart_runFun <- function(
         progress_value = (nrow(Table_job_status) - WaitIndex)/nrow(Table_job_status)
         utils::setTxtProgressBar(pb, value = progress_value)
         # wait for a while to check the job log
-        Sys.sleep(checkInt * WaitIndex + stats::runif(1, 0,5))
+        Sys.sleep(checkInt + stats::runif(1, 0,5) + stats::runif(1, 0, WaitIndex))
       }
     }
 
@@ -224,6 +224,7 @@ smart_runFun <- function(
   },import = "auto", title = name)
 
   # extend the waiting time according to the number of ongoing models
+  Table_job_status <- view_job(path = job_log_path)
   n_running = sum(Table_job_status$status == "pending")
   delay = dplyr::case_when(
     n_running <= 5 ~ 9,
