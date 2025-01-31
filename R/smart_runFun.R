@@ -123,13 +123,23 @@ smart_runFun <- function(
       Table_running <- Table_job_status %>%
         dplyr::filter(.data$status == "running")
 
+      # The list of models that are completed
+      List_completed <- Table_job_status %>%
+        dplyr::filter(.data$status == "completed") %>%
+        dplyr::pull(index)
+
+      List_completed <- c(0, List_completed)
+
       # how many cores have been used
       usingCore = sum(Table_running$cores)
 
       # adjust the waiting list
       Table_waiting <- Table_job_status %>%
         dplyr::filter(.data$status == "pending") %>%
-        dplyr::arrange(dplyr::desc(.data$priority), .data$index) %>%
+        dplyr::rowwise() %>%
+        dplyr::mutate(queue = length(setdiff(as.numeric(unlist(strsplit(.data$untilFinished, ","))),List_completed))) %>%
+        dplyr::ungroup() %>%
+        dplyr::arrange(dplyr::desc(.data$priority), .data$queue, .data$index) %>%
         dplyr::mutate(rank = dplyr::row_number())
 
       # get the waiting index
@@ -138,21 +148,9 @@ smart_runFun <- function(
         dplyr::pull(rank)
 
       # check if the model can be run
-      untilIndex <- Table_waiting$untilFinished[WaitIndex]
-      untilIndex <- as.numeric(unlist(base::strsplit(untilIndex, ",")))
       needCores <- Table_waiting$cores[WaitIndex]
-      if (0 %in% untilIndex) {
-
-        running_check = WaitIndex == 1 & cores <= (maxCore - usingCore)
-      } else {
-        Table_check_status <- Table_job_status %>%
-          dplyr::filter(.data$index %in% untilIndex, .data$status != "completed")
-
-        not_completed = nrow(Table_check_status)
-
-        running_check = WaitIndex == 1 & needCores <= (maxCore - usingCore) & not_completed == 0
-      }
-
+      queue <- Table_waiting$queue[WaitIndex]
+      running_check = WaitIndex == 1 & needCores <= (maxCore - usingCore) & queue == 0
 
       if (running_check) {
         utils::setTxtProgressBar(pb, value = 1)
@@ -171,7 +169,7 @@ smart_runFun <- function(
 
     # print the start time
     start_time = Sys.time()
-    message(paste0("\nThe task starts to run at ", start_time))
+    message(paste0("\nThe task starts to run at ", format(start_time, "%Y-%m-%d %H:%M:%S")))
 
     # update the job log
     update_job(
@@ -217,7 +215,7 @@ smart_runFun <- function(
       finally = {
         # print the end time
         end_time = Sys.time()
-        message(paste0("\nThe task has done at ", end_time))
+        message(paste0("\nThe task has done at ", format(end_time, "%Y-%m-%d %H:%M:%S")))
         message(paste0("\nIt takes ", round(as.numeric(end_time - start_time, units = 'hours'),2), " hours."))
       }
     )
