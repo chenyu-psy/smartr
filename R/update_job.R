@@ -41,7 +41,7 @@ update_job <- function(.x, status, path=NULL) {
     duration = difftime(as.character(endTime), as.character(startTime), units = "hours") %>% round(2)
 
     # update the job
-    Table_status[which(Table_status$index == .x), "endTime"] = format(end_time, "%Y-%m-%d %H:%M:%S")
+    Table_status[which(Table_status$index == .x), "endTime"] = format(endTime, "%Y-%m-%d %H:%M:%S")
     Table_status[which(Table_status$index == .x), "duration"] = duration
   }
 
