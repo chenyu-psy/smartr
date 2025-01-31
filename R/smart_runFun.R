@@ -223,6 +223,15 @@ smart_runFun <- function(
 
   },import = "auto", title = name)
 
-  Sys.sleep(9)
+  # extend the waiting time according to the number of ongoing models
+  n_running = sum(Table_job_status$status == "pending")
+  delay = dplyr::case_when(
+    n_running <= 5 ~ 9,
+    n_running <= 10 ~ 19,
+    n_running <= 20 ~ 39,
+    n_running <= 30 ~ 59,
+    TRUE ~ 119
+  )
+  Sys.sleep(delay)
 
 }
