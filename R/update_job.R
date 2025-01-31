@@ -30,18 +30,18 @@ update_job <- function(.x, status, path=NULL) {
 
   # update the job
   if (status == "running") {
-    startTime = as.character(Sys.time())
-    Table_status[which(Table_status$index == .x), "startTime"] = startTime
+    startTime = Sys.time()
+    Table_status[which(Table_status$index == .x), "startTime"] = format(startTime, "%Y-%m-%d %H:%M:%S")
   } else if (status == "completed" || status == "failed") {
 
     # calculate the duration
     startTime = Table_status[which(Table_status$index == .x), "startTime"]
     startTime = as.POSIXct(startTime)
-    endTime = as.character(Sys.time())
-    duration = difftime(endTime, startTime, units = "hours") %>% round(2)
+    endTime = Sys.time()
+    duration = difftime(as.character(endTime), as.character(startTime), units = "hours") %>% round(2)
 
     # update the job
-    Table_status[which(Table_status$index == .x), "endTime"] = endTime
+    Table_status[which(Table_status$index == .x), "endTime"] = format(end_time, "%Y-%m-%d %H:%M:%S")
     Table_status[which(Table_status$index == .x), "duration"] = duration
   }
 
