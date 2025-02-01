@@ -110,7 +110,6 @@ smart_runFun <- function(
 
     # set up the progress bar
     message("\nThe task is now in the waiting list ...")
-    pb = utils::txtProgressBar(min = 0, max = 1, initial = 0, style = 3)
 
     # check how many models are running,
     # wait until the model meet the running condition
@@ -153,15 +152,20 @@ smart_runFun <- function(
       running_check = WaitIndex == 1 & needCores <= (maxCore - usingCore) & queue == 0
 
       if (running_check) {
-        utils::setTxtProgressBar(pb, value = 1)
-        close(pb)
+
+        cat(sprintf("\rThe task is now running ...                                                \n\n"))
+        flush.console()
         break
       } else {
-        # update the progress bar
-        progress_value = (nrow(Table_job_status) - WaitIndex)/nrow(Table_job_status)
-        utils::setTxtProgressBar(pb, value = progress_value)
-        # wait for a while to check the job log
-        Sys.sleep(checkInt + stats::runif(1, 0,5) + stats::runif(1, 0, WaitIndex))
+        # update the progress
+        progValue = (nrow(Table_job_status) - WaitIndex)/nrow(Table_job_status)*100
+        sleep_time = checkInt + stats::runif(1, 0,5)
+        for (i in as.integer(sleep_time):0) {
+          cat(paste0("\rThe task is currently ", round(progValue,2), "% one the waiting list; the next update will be in ",i,"s.  "))
+          flush.console()
+          Sys.sleep(1)
+        }
+        Sys.sleep(runif(1,0,1))
       }
     }
 
