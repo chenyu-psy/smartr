@@ -161,7 +161,7 @@ smart_runFun <- function(
         progValue = (nrow(Table_job_status) - WaitIndex)/nrow(Table_job_status)*100
         sleep_time = checkInt + stats::runif(1, 0,5)
         for (i in as.integer(sleep_time):0) {
-          cat(paste0("\rThe task is currently ", round(progValue,2), "% one the waiting list; the next update will be in ",i,"s.  "))
+          cat(paste0("\rThe task is in position ", WaitIndex, "of the waiting list; the next update will be in ",i,"s.  "))
           flush.console()
           Sys.sleep(1)
         }
