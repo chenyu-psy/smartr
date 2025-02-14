@@ -166,6 +166,7 @@ parallel_model_comparsion <- function(
         iModel = i,
         sampler_args = sampler_args
       ),
+      cores = sampler_args$cores,
       maxCore = maxCore,
       priority = 1,
       name = Table_model_info$sample_name[i]
