@@ -11,6 +11,7 @@ parallel_model_comparsion(
   model_fun = NULL,
   prior_fun = NULL,
   args,
+  sampler_args = NULL,
   model_name = "Model",
   model_path,
   sample_path,
@@ -30,6 +31,8 @@ parallel_model_comparsion(
 \item{prior_fun}{The function to generate the prior. The default is `NULL`.}
 
 \item{args}{The arguments of the function to run in parallel.}
+
+\item{sampler_args}{The arguments of the bridge_sampler function. The default is `NULL`.}
 
 \item{model_name}{The name of the model. The default is `Model`.}
 

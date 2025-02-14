@@ -10,6 +10,7 @@
 #' @param model_fun The function to generate the model. This parameter only supports the `bmm` model.
 #' @param prior_fun The function to generate the prior. The default is `NULL`.
 #' @param args The arguments of the function to run in parallel.
+#' @param sampler_args The arguments of the bridge_sampler function. The default is `NULL`.
 #' @param model_name The name of the model. The default is `Model`.
 #' @param model_path The path to store the model.
 #' @param sample_path The path to store the sample.
@@ -28,6 +29,7 @@ parallel_model_comparsion <- function(
     model_fun = NULL,
     prior_fun = NULL,
     args,
+    sampler_args = NULL,
     model_name = "Model",
     model_path,
     sample_path,
@@ -40,6 +42,15 @@ parallel_model_comparsion <- function(
       gsub("Model", "Sample", model_name, ignore.case = TRUE)
   } else {
     sample_name <- paste("Sample", model_name, sep = "_")
+  }
+
+  # if sampler is NULL, set the default value
+  if (is.null(sampler_args)) {
+    sampler_args <- list(
+      cores = 1,
+      repetition = 10,
+      maxiter = 1000
+    )
   }
 
   # temporary file used to store the model information
@@ -129,7 +140,7 @@ parallel_model_comparsion <- function(
 
     # bridge sampling
     smart_runFun(
-      fun = function(table_path, iModel, cores = 1) {
+      fun = function(table_path, iModel, sampler_args) {
         Table_model_info <- readRDS(table_path)
 
         # Import the model information
@@ -141,12 +152,8 @@ parallel_model_comparsion <- function(
           model <- readRDS(model_file)
 
           # Run the bridge sampling
-          sample <- brms::bridge_sampler(
-            samples = model,
-            cores = cores,
-            repetition = 10,
-            maxiter = 1000
-          )
+          sampler_args$samples = model
+          sample <- do.call(brms::bridge_sampler, sampler_args)
 
           # save the sample
           saveRDS(sample, sample_file)
@@ -157,7 +164,7 @@ parallel_model_comparsion <- function(
       args = list(
         table_path = File_model_table,
         iModel = i,
-        cores = args$cores
+        sampler_args = sampler_args
       ),
       maxCore = maxCore,
       priority = 1,
