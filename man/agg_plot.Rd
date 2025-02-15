@@ -2,26 +2,50 @@
 % Please edit documentation in R/agg_plot.R
 \name{agg_plot}
 \alias{agg_plot}
-\title{Aggregate data for plotting}
+\title{Aggregate Data for Plotting}
 \usage{
-agg_plot(data, y, between = NULL, within = NULL, group = NULL, ci = 0.95)
+agg_plot(
+  data,
+  y,
+  between = NULL,
+  within = NULL,
+  group = NULL,
+  ci = 0.95,
+  zero.rm = T
+)
 }
 \arguments{
-\item{data}{A data frame containing the data to be aggregated}
+\item{data}{A data frame containing the data to be aggregated.}
 
-\item{y}{The variable to be aggregated}
+\item{y}{The variable to be aggregated (can be a string or tidyverse-style variable).}
 
-\item{between}{The between-subject factor}
+\item{between}{The between-subject factor (can be a string or tidyverse-style variable). Default is `NULL`.}
 
-\item{within}{The within-subject factor}
+\item{within}{The within-subject factor (can be a string or tidyverse-style variable). Default is `NULL`.}
 
-\item{group}{The grouping variable}
+\item{group}{The grouping variable (can be a string or tidyverse-style variable). Default is `NULL`.}
 
-\item{ci}{The confidence interval}
+\item{ci}{The confidence interval level. Default is `0.95`.}
+
+\item{zero.rm}{Logical indicating whether to remove cases where the mean and standard deviation are both zero. Default is `TRUE`.}
 }
 \value{
-A data frame containing the aggregated data
+A data frame containing the aggregated data with the following columns:
+- `mean`: The mean of the aggregated variable.
+- `n`: The number of observations.
+- `se`: The standard error of the mean.
+- `ci`: The confidence interval.
 }
 \description{
-This function aggregates data for plotting. It computes the mean, standard error, and confidence interval of the data.
+This function aggregates data for plotting by computing the mean, standard error, and confidence interval. It supports both between-subject and within-subject factors, and includes adjustments for within-subject variability (e.g., Morey correction).
+}
+\examples{
+\dontrun{
+data <- data.frame(
+  subject = rep(1:10, each = 2),
+  condition = rep(c("A", "B"), times = 10),
+  score = rnorm(20)
+)
+agg_plot(data, y = score, between = condition, group = subject)
+}
 }
