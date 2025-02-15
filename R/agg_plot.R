@@ -31,60 +31,64 @@
 #' )
 #' agg_plot(data, y = score, between = condition, group = subject)
 #' }
-agg_plot <- function(data, y, between = NULL, within = NULL, group = NULL, ci = 0.95, zero.rm = T) {
+agg_plot <- function(data, y, between = NULL, within = NULL, group = NULL, ci = 0.95, zero.rm = TRUE) {
 
   # Input validation
-  if (!is.data.frame(data)) {
-    stop("`data` must be a data frame.")
-  }
-  if (ci <= 0 || ci >= 1) {
-    stop("`ci` must be a value between 0 and 1.")
+  if (!is.data.frame(data)) stop("`data` must be a data frame.")
+  if (ci <= 0 || ci >= 1) stop("`ci` must be a value between 0 and 1.")
+
+  # Possibly function to handle NULL values gracefully
+  possibly_null <- purrr::possibly(is.null, otherwise = FALSE)
+
+  # Function to convert tidyverse-style variable vectors to character vectors
+  var2string <- function(data,vars) {
+    select(data,{{vars}}) %>% names()
   }
 
-  # Convert inputs to symbols
-  possibly_null <- purrr::possibly(is.null, otherwise = FALSE)
-  # Convert all inputs to symbols
+  # Convert inputs to symbols (supporting both string and tidyverse-style variables)
   y <- ensym(y)
-  between <- if (!possibly_null(between)) ensym(between)
-  within <- if (!possibly_null(within)) ensym(within)
-  group <- if (!possibly_null(group)) ensym(group)
+  between <- if (!possibly_null(between)) var2string(data, {{between}}) else NULL
+  within <- if (!possibly_null(within)) var2string(data, {{within}}) else NULL
+  group <- if (!possibly_null(group)) var2string(data, {{group}}) else NULL
+
+  # Define grouping variables dynamically
+  group_vars <- c(group, between, within)
 
   # Aggregate data at the participant level
   df <- data %>%
-    group_by(across(c(!!group, !!between, !!within))) %>%
+    group_by(across(all_of(group_vars))) %>%
     summarize(sub_y = mean(!!y, na.rm = TRUE), .groups = "drop")
 
   # Adjust data for within-subject variability
-  if (!is.null(within)) {
+  if (!possibly_null(within)) {
     df <- df %>%
-      group_by(across(c(!!group, !!between))) %>%
+      group_by(across(all_of(c(group, between)))) %>%
       mutate(user_mean = mean(.data$sub_y, na.rm = TRUE)) %>%
       ungroup() %>%
-      group_by(across(!!between)) %>%
+      group_by(across(all_of(between))) %>%
       mutate(grand_mean = mean(.data$sub_y, na.rm = TRUE)) %>%
       ungroup() %>%
       mutate(y_adjusted = .data$sub_y - .data$user_mean + .data$grand_mean)
   } else {
-    df <- df %>%
-      mutate(y_adjusted = .data$sub_y)
+    df <- df %>% mutate(y_adjusted = .data$sub_y)
   }
 
   # Aggregate data at the plot level
   df <- df %>%
-    group_by(across(c(!!between, !!within))) %>%
+    group_by(across(all_of(c(between, within)))) %>%
     summarize(
       mean = mean(.data$y_adjusted, na.rm = TRUE),
       n = n(),
-      se = sd(.data$y_adjusted, na.rm = TRUE) / sqrt(.data$n),
-      ci = qt(1 - (1 - ci) / 2, .data$n - 1) * .data$se,
+      se = sd(.data$y_adjusted, na.rm = TRUE) / sqrt(n),
+      ci = qt(1 - (1 - ci) / 2, n - 1) * .data$se,
       .groups = "drop"
     )
 
   # Apply Morey correction for within-subject SE
-  if (!is.null(within)) {
-    if (!is.null(between)) {
+  if (!possibly_null(within)) {
+    if (!possibly_null(between)) {
       df <- df %>%
-        group_by(across(!!between)) %>%
+        group_by(across(all_of(between))) %>%
         mutate(
           morey_correction = sqrt(n() / (n() - 1)),
           se = .data$se * .data$morey_correction
@@ -102,20 +106,23 @@ agg_plot <- function(data, y, between = NULL, within = NULL, group = NULL, ci = 
 
   # Handle cases where mean = 0 and sd = 0
   filter_conditions <- data %>%
-    group_by(across(c(!!between, !!within))) %>%
+    group_by(across(all_of(c(between, within)))) %>%
     summarize(
       mean = mean(!!y, na.rm = TRUE),
       sd = sd(!!y, na.rm = TRUE),
       .groups = "drop"
     ) %>%
     filter(.data$mean == 0, .data$sd == 0) %>%
-    select(all_of(c(as.character(between), as.character(within)))) %>%
+    select(all_of(c(between, within))) %>%
     distinct() %>%
     mutate(filter = TRUE)
 
+  # Ensure left join works even if some grouping vars are NULL
+  join_vars <- intersect(names(df), names(filter_conditions))
+
   if (nrow(filter_conditions) > 0 & zero.rm) {
     df <- df %>%
-      left_join(filter_conditions, by = c(as.character(between), as.character(within))) %>%
+      left_join(filter_conditions, by = join_vars) %>%
       mutate(
         filter = ifelse(is.na(.data$filter), FALSE, .data$filter),
         mean = ifelse(.data$filter, NA, .data$mean),
