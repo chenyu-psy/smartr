@@ -1,18 +1,35 @@
-#' Initialize a job log.
+#' Job Log Management
 #'
 #' @description
-#' Creates an empty job log as a data frame with model information and stores it as an RDS file.
+#' These functions manage a job log, which is stored as an RDS file. The job log tracks the status, priority, and other details of jobs.
 #'
-#' @param path Character. Optional. The directory where the job log should be stored.
-#' If `NULL`, the log is saved in a temporary directory.
+#' @param path Character. Optional. The directory where the job log is stored. If `NULL`, the function looks in the temporary directory.
+#' @param .x Character or numeric. The job name (character) or index (numeric). For `view_job` and `remove_job`, if `NULL`, returns or removes all jobs.
+#'
+#' @details
+#' - `init_job`: Initializes a new job log.
+#' - `view_job`: Retrieves the status of one or more jobs.
+#' - `remove_job`: Removes one or more jobs from the job log.
 #'
 #' @examples
-#' file_path <- init_job()  # Saves in temp directory
-#' file_path <- init_job("path/to/directory")  # Saves in a specified directory
+#' \dontrun{
+#' # Initialize a job log
+#' init_job()  # Saves in temp directory
 #'
+#' # You have to use `smart_runFun` to add jobs to the log
+#'
+#' # View job status
+#' view_job()  # View all jobs
+#' view_job(1)  # View job with index 1
+#' view_job("job_name")  # View job with name "job_name"
+#'
+#' # Remove a job
+#' remove_job(1)  # Remove job with index 1
+#' remove_job("Task_A")  # Remove job with name "Task_A"
+#'}
+#' @rdname job_manager
 #' @export
 init_job <- function(path = NULL) {
-
   # Define table structure
   table_cols <- c("index", "name", "cores", "untilFinished", "priority",
                   "status", "startTime", "endTime", "duration")
@@ -34,34 +51,11 @@ init_job <- function(path = NULL) {
 
   # Inform the user
   message("The job log has been initialized.")
-
 }
 
-
-#' View the status of a job.
-#'
-#' @description
-#' Retrieves job statuses from the job log. If no job index or name is specified, returns all jobs.
-#'
-#' @param .x Character or numeric. The job name (character) or index (numeric).
-#' If `NULL`, returns all jobs.
-#'
-#' @param path Character. Optional. The directory where the job log is stored.
-#' If `NULL`, the function looks in the temporary directory.
-#'
-#' @return A data frame containing the status of the specified job(s).
-#'
-#' @importFrom dplyr filter
-#' @importFrom rlang .data
-#'
-#' @examples
-#' view_job()  # View all jobs
-#' view_job(1)  # View job with index 1
-#' view_job("job_name")  # View job with name "job_name"
-#'
+#' @rdname job_manager
 #' @export
 view_job <- function(.x = NULL, path = NULL) {
-
   # Determine file path
   file_path <- if (!is.null(path)) {
     file.path(path, "job_log.rds")
@@ -92,7 +86,46 @@ view_job <- function(.x = NULL, path = NULL) {
   return(table_status)
 }
 
+#' @rdname job_manager
+#' @export
+remove_job <- function(.x, path = NULL) {
+  # Determine file path
+  file_path <- if (!is.null(path)) {
+    file.path(path, "job_log.rds")
+  } else {
+    file.path(tempdir(), "job_log.rds")
+  }
 
+  # Check if job log file exists
+  if (!file.exists(file_path)) {
+    stop("Job log file not found at: ", file_path,
+         "\nMake sure you have initialized the job log using `init_job()`.")
+  }
+
+  # Read the job log
+  table_status <- readRDS(file_path)
+
+  # Check if .x exists in job log
+  if (is.numeric(.x)) {
+    if (!any(table_status$index %in% .x)) {
+      stop("No job found with the specified index: ", .x)
+    }
+    table_status <- dplyr::filter(table_status, !.data$index %in% .x)
+  } else if (is.character(.x)) {
+    if (!any(table_status$name %in% .x)) {
+      stop("No job found with the specified name: ", .x)
+    }
+    table_status <- dplyr::filter(table_status, !.data$name %in% .x)
+  } else {
+    stop("`.x` should be either a numeric (job index) or character (job name).")
+  }
+
+  # Save updated job log
+  saveRDS(table_status, file_path)
+
+  # Inform the user
+  message("Job '", .x, "' removed from job log.")
+}
 
 #' Append a new job to the job log.
 #'
@@ -105,18 +138,8 @@ view_job <- function(.x = NULL, path = NULL) {
 #' @param priority Numeric. The priority of the job, with higher numbers indicating higher priority. Default is `0`.
 #' @param path Character. Optional. The directory where the job log is stored. If `NULL`, the function looks in the temporary directory.
 #'
-#' @examples
-#' append_job(name = "Task_A", cores = 2, untilFinished = TRUE, priority = 1)
-#' append_job(name = "Task_B", cores = 4, priority = 3)
-#'
-#' @export
-append_job <- function(
-    name = NULL,
-    cores = 1,
-    untilFinished = FALSE,
-    priority = 0,
-    path = NULL) {
-
+#' @keywords internal
+append_job <- function(name = NULL, cores = 1, untilFinished = FALSE, priority = 0, path = NULL) {
   # Validate input parameters
   if (is.null(name) || !is.character(name)) {
     stop("`name` must be provided and must be a character string.")
@@ -172,10 +195,7 @@ append_job <- function(
 
   # Save updated job log
   saveRDS(table_status, file_path)
-
 }
-
-
 
 #' Update the job status.
 #'
@@ -185,16 +205,10 @@ append_job <- function(
 #'
 #' @param .x Character or numeric. The job name (character) or index (numeric).
 #' @param status Character. The new status of the job. Must be one of `"pending"`, `"running"`, `"completed"`, or `"failed"`.
-#' @param path Character. Optional. The directory where the job log is stored.
-#' If `NULL`, the function looks in the temporary directory.
+#' @param path Character. Optional. The directory where the job log is stored. If `NULL`, the function looks in the temporary directory.
 #'
-#' @examples
-#' update_job(1, "running")  # Mark job with index 1 as running
-#' update_job("Task_A", "completed")  # Mark job with name "Task_A" as completed
-#'
-#' @export
+#' @keywords internal
 update_job <- function(.x, status, path = NULL) {
-
   # Define valid statuses
   valid_statuses <- c("pending", "running", "completed", "failed")
 
@@ -259,63 +273,5 @@ update_job <- function(.x, status, path = NULL) {
 
   # Save updated job log
   saveRDS(table_status, file_path)
-
 }
 
-
-#' Remove job(s) from the job log.
-#'
-#' @description
-#' Removes a job (or multiple jobs) from the job log by index or name.
-#'
-#' @param .x Character or numeric. The job name (character) or index (numeric) of the job(s) to be removed.
-#' @param path Character. Optional. The directory where the job log is stored.
-#' If `NULL`, the function looks in the temporary directory.
-#'
-#' @importFrom dplyr filter
-#' @importFrom rlang .data
-#'
-#' @examples
-#' remove_job(1)  # Remove job with index 1
-#' remove_job("Task_A")  # Remove job with name "Task_A"
-#'
-#' @export
-remove_job <- function(.x, path = NULL) {
-
-  # Determine file path
-  file_path <- if (!is.null(path)) {
-    file.path(path, "job_log.rds")
-  } else {
-    file.path(tempdir(), "job_log.rds")
-  }
-
-  # Check if job log file exists
-  if (!file.exists(file_path)) {
-    stop("Job log file not found at: ", file_path,
-         "\nMake sure you have initialized the job log using `init_job()`.")
-  }
-
-  # Read the job log
-  table_status <- readRDS(file_path)
-
-  # Check if .x exists in job log
-  if (is.numeric(.x)) {
-    if (!any(table_status$index %in% .x)) {
-      stop("No job found with the specified index: ", .x)
-    }
-    table_status <- dplyr::filter(table_status, !.data$index %in% .x)
-  } else if (is.character(.x)) {
-    if (!any(table_status$name %in% .x)) {
-      stop("No job found with the specified name: ", .x)
-    }
-    table_status <- dplyr::filter(table_status, !.data$name %in% .x)
-  } else {
-    stop("`.x` should be either a numeric (job index) or character (job name).")
-  }
-
-  # Save updated job log
-  saveRDS(table_status, file_path)
-
-  # Inform the user
-  message("Job '", .x, "' removed from job log.")
-}

@@ -11,15 +11,10 @@ update_job(.x, status, path = NULL)
 
 \item{status}{Character. The new status of the job. Must be one of `"pending"`, `"running"`, `"completed"`, or `"failed"`.}
 
-\item{path}{Character. Optional. The directory where the job log is stored.
-If `NULL`, the function looks in the temporary directory.}
+\item{path}{Character. Optional. The directory where the job log is stored. If `NULL`, the function looks in the temporary directory.}
 }
 \description{
 Updates the status of a job in the job log. If setting a job to `"running"`, it records the start time.
 If setting a job to `"completed"` or `"failed"`, it records the end time and calculates duration.
 }
-\examples{
-update_job(1, "running")  # Mark job with index 1 as running
-update_job("Task_A", "completed")  # Mark job with name "Task_A" as completed
-
-}
+\keyword{internal}

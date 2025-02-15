@@ -176,7 +176,7 @@ smart_runFun <- function(
     message(paste0("\nThe task starts to run at ", format(start_time, "%Y-%m-%d %H:%M:%S")))
 
     # update the job log
-    update_job(
+    smartr:::update_job(
       current_index,
       status = "running",
       path = job_log_path
@@ -193,7 +193,7 @@ smart_runFun <- function(
         rm(results)
 
         # Adjust the status of the model as completed.
-        smartr::update_job(
+        smartr:::update_job(
           current_index,
           status = "completed",
           path = job_log_path
@@ -205,7 +205,7 @@ smart_runFun <- function(
       error = function(e){
 
         # Adjust the status of the model as running.
-        smartr::update_job(
+        smartr:::update_job(
           current_index,
           status = "failed",
           path = job_log_path

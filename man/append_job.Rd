@@ -26,8 +26,4 @@ append_job(
 \description{
 Adds a new job entry to the job log, assigning an index, priority, and status.
 }
-\examples{
-append_job(name = "Task_A", cores = 2, untilFinished = TRUE, priority = 1)
-append_job(name = "Task_B", cores = 4, priority = 3)
-
-}
+\keyword{internal}
