@@ -1,0 +1,39 @@
+name: Auto Release Package
+
+on:
+  push:
+    branches:
+      - main  # Change this if your main branch has a different name
+    paths:
+      - DESCRIPTION  # Trigger only when the DESCRIPTION file changes
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Get Version from DESCRIPTION
+        id: get_version
+        run: |
+          VERSION=$(grep '^Version:' DESCRIPTION | awk '{print $2}')
+          echo "PACKAGE_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Detected version: $VERSION"
+
+      - name: Create and Push Git Tag
+        run: |
+          git tag -a v${{ env.PACKAGE_VERSION }} -m "Release version ${{ env.PACKAGE_VERSION }}"
+          git push origin v${{ env.PACKAGE_VERSION }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ env.PACKAGE_VERSION }}
+          release_name: "Version ${{ env.PACKAGE_VERSION }}"
+          body: "This is an automated release for version ${{ env.PACKAGE_VERSION }}."
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
