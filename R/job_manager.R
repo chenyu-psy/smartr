@@ -134,12 +134,12 @@ remove_job <- function(.x, path = NULL) {
 #'
 #' @param name Character. The name of the job. This must be provided.
 #' @param cores Integer. The number of cores allocated to the job. Default is `1`.
-#' @param untilFinished Logical. Whether the job should wait for previous jobs to finish before running. Default is `FALSE`.
+#' @param untilFinished Character or numeric vector. If it is a numeric vector, it will be converted to a character.
 #' @param priority Numeric. The priority of the job, with higher numbers indicating higher priority. Default is `0`.
 #' @param path Character. Optional. The directory where the job log is stored. If `NULL`, the function looks in the temporary directory.
 #'
 #' @keywords internal
-append_job <- function(name = NULL, cores = 1, untilFinished = FALSE, priority = 0, path = NULL) {
+append_job <- function(name = NULL, cores = 1, untilFinished = NULL, priority = 0, path = NULL) {
   # Validate input parameters
   if (is.null(name) || !is.character(name)) {
     stop("`name` must be provided and must be a character string.")
@@ -149,8 +149,15 @@ append_job <- function(name = NULL, cores = 1, untilFinished = FALSE, priority =
     stop("`cores` must be a positive integer.")
   }
 
-  if (!is.logical(untilFinished)) {
-    stop("`untilFinished` must be a logical value (`TRUE` or `FALSE`).")
+  # if the untilFinished is not defined, set it to 0
+  if (is.null(untilFinished)) {
+    untilFinished = "0"
+  } else if (is.numeric(untilFinished)) {
+    untilFinished = paste(untilFinished,collapse=",")
+  } else if (is.character(untilFinished)) {
+    untilFinished = untilFinished
+  } else {
+    stop("The untilFinished should be a numeric vector.")
   }
 
   if (!is.numeric(priority)) {
@@ -181,7 +188,7 @@ append_job <- function(name = NULL, cores = 1, untilFinished = FALSE, priority =
     index = index,
     name = as.character(name),
     cores = as.integer(cores),
-    untilFinished = as.logical(untilFinished),
+    untilFinished = untilFinished,
     priority = as.numeric(priority),
     status = "pending",
     startTime = NA,

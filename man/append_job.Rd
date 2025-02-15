@@ -7,7 +7,7 @@
 append_job(
   name = NULL,
   cores = 1,
-  untilFinished = FALSE,
+  untilFinished = NULL,
   priority = 0,
   path = NULL
 )
@@ -17,7 +17,7 @@ append_job(
 
 \item{cores}{Integer. The number of cores allocated to the job. Default is `1`.}
 
-\item{untilFinished}{Logical. Whether the job should wait for previous jobs to finish before running. Default is `FALSE`.}
+\item{untilFinished}{Character or numeric vector. If it is a numeric vector, it will be converted to a character.}
 
 \item{priority}{Numeric. The priority of the job, with higher numbers indicating higher priority. Default is `0`.}
 

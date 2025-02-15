@@ -7,7 +7,7 @@
 smart_runFun(
   fun,
   args,
-  untilFinished = FALSE,
+  untilFinished = NULL,
   cores = NULL,
   maxCore = NULL,
   priority = 1,
@@ -21,8 +21,7 @@ smart_runFun(
 
 \item{args}{The arguments of the function to run in parallel.}
 
-\item{untilFinished}{Logical or index. If `TRUE`, the function will not run until all the previous functions are finished.
-If it is an index or a vector of indices, the function will not run until the functions with the same index are finished.}
+\item{untilFinished}{NULL or index. If it is an index or a vector of indices, the function will not run until the functions with the same index are finished.}
 
 \item{cores}{The number of cores required to run the function}
 

@@ -24,7 +24,7 @@ test_that("append_job adds a job to the job log", {
   init_job(test_path)  # Ensure the job log is initialized
   job_log_before <- view_job(path = test_path)
 
-  append_job(name = "TestJob", cores = 2, untilFinished = TRUE, priority = 1, path = test_path)
+  smartr:::append_job(name = "TestJob", cores = 2, untilFinished = NULL, priority = 1, path = test_path)
 
   job_log_after <- view_job(path = test_path)
 
@@ -52,7 +52,7 @@ test_that("view_job retrieves job information", {
 
 # ---- Test: update_job() ----
 test_that("update_job changes job status correctly", {
-  update_job(1, "running", path = test_path)
+  smartr:::update_job(1, "running", path = test_path)
   job_log <- view_job(1, path = test_path)
 
   expect_equal(job_log$status, "running")
@@ -80,3 +80,4 @@ test_that("remove_job deletes a job from the log", {
 
 # Cleanup: Remove test job log file
 unlink(file.path(test_path, "job_log.rds"))
+

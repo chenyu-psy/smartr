@@ -6,8 +6,7 @@
 #'
 #'@param fun The function to run in parallel.
 #'@param args The arguments of the function to run in parallel.
-#'@param untilFinished Logical or index. If `TRUE`, the function will not run until all the previous functions are finished.
-#'If it is an index or a vector of indices, the function will not run until the functions with the same index are finished.
+#'@param untilFinished NULL or index. If it is an index or a vector of indices, the function will not run until the functions with the same index are finished.
 #'@param cores The number of cores required to run the function
 #'@param maxCore The maximum number of cores that can be used to run the function
 #'@param priority The priority of the function The code with a higher priority will be run first.
@@ -22,7 +21,7 @@
 smart_runFun <- function(
     fun,
     args,
-    untilFinished = FALSE,
+    untilFinished = NULL,
     cores = NULL,
     maxCore = NULL,
     priority = 1,
@@ -82,14 +81,8 @@ smart_runFun <- function(
     untilFinished = "0"
   } else if (is.numeric(untilFinished)) {
     untilFinished = paste(untilFinished,collapse=",")
-  } else if (untilFinished==FALSE) {
-    untilFinished = "0"
-  } else if (untilFinished==TRUE) {
-    if (nrow(Table_job_status)==0) {
-      untilFinished = "0"
-    } else {
-      untilFinished = paste(1:nrow(Table_job_status),collapse=",")
-    }
+  } else {
+    stop("The untilFinished should be a numeric vector.")
   }
 
   # append the job to the job log
