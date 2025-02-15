@@ -9,10 +9,15 @@
 #' @param studyId A unique code of study, you can find it on JATOS
 #' @param batchId A unique code of a batch session in the study.
 #' @param dataPath A path used to save data. If NUll, data will be saved in working directory.
+#' @param extractInfo A list of keys to extract from the data file. Default is NULL.
 #'
 #' @return data.frame
 #'
 #' @importFrom rlang .data
+#' @importFrom dplyr add_row
+#' @importFrom httr GET add_headers write_disk
+#' @importFrom jsonlite read_json
+#' @importFrom stringr str_glue str_extract_all
 #'
 #' @export
 #'
@@ -26,28 +31,28 @@ get_JATOS_data <- function(token,
     dataPath = "./" # Set the default data path
 
   # Create the authorization header with the specified token
-  headers = c(`Authorization` = stringr::str_glue("Bearer {token}"))
+  headers = c(`Authorization` = str_glue("Bearer {token}"))
 
   # Read the data from the JATOS server
   for (batch in batchId) {
     # Create the file paths for the zipped and unzipped data
-    file_zip <- stringr::str_glue("{tempdir()}/JATOS_DATA_{batch}.jrzip")
-    file_unzip <- stringr::str_glue("{dataPath}JATOS_DATA_{batch}")
+    file_zip <- str_glue("{tempdir()}/JATOS_DATA_{batch}.jrzip")
+    file_unzip <- str_glue("{dataPath}JATOS_DATA_{batch}")
 
     # Send an HTTP GET request to the specified URL, passing in the UUID and batch ID
     # Also pass in the authorization header and write the response to a temporary file
-    res <- httr::GET(
-      url = stringr::str_glue("{url}?studyId={studyId}&batchId={batch}"),
-      httr::add_headers(.headers = headers),
-      httr::write_disk(file_zip, overwrite = TRUE)
+    res <- GET(
+      url = str_glue("{url}?studyId={studyId}&batchId={batch}"),
+      add_headers(.headers = headers),
+      write_disk(file_zip, overwrite = TRUE)
     )
 
     # Unzip the downloaded file and extract the file names into a list
     filelist = utils::unzip(file_zip, exdir = file_unzip, overwrite = TRUE)
 
     # Read the metadata from the last file in the list (assuming it is in JSON format)
-    metaData_path <- stringr::str_glue("{file_unzip}/metadata.json")
-    metaData <- jsonlite::read_json(metaData_path)$data[[1]]$studyResults
+    metaData_path <- str_glue("{file_unzip}/metadata.json")
+    metaData <- read_json(metaData_path)$data[[1]]$studyResults
 
     # Extract relevant metadata from the metadata list and store in a data frame
     info_table <- data.frame(
@@ -94,7 +99,7 @@ get_JATOS_data <- function(token,
         }
 
         # check if the file is in the file list
-        file_path <- stringr::str_glue(
+        file_path <- str_glue(
           "{file_unzip}/study_result_{resultData$id}/comp-result_{compData$id}/data.txt"
         )
         file_path <- ifelse(file_path %in% filelist, file_path, NA)
@@ -112,7 +117,7 @@ get_JATOS_data <- function(token,
               pattern <- sprintf('(?<="%s":")\\w+', key)
 
               # Extract the value associated with the key
-              extractList[[key]] <- unique(stringr::str_extract_all(file, pattern)[[1]])
+              extractList[[key]] <- unique(str_extract_all(file, pattern)[[1]])
             }
           }
 
@@ -125,7 +130,7 @@ get_JATOS_data <- function(token,
 
         # Add the metadata to the data frame
         info_table <- info_table %>%
-          dplyr::add_row(
+          add_row(
             studyId = studyId,
             batchId = batch,
             resultId = resultData$id,
