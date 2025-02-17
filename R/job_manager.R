@@ -157,7 +157,7 @@ append_job <- function(name = NULL, cores = 1, untilFinished = NULL, priority = 
   } else if (is.character(untilFinished)) {
     untilFinished = untilFinished
   } else {
-    stop("The untilFinished should be a numeric vector.")
+    stop(paste0("Error in `untilFinished` parameter: ", untilFinished, ". It must be a numeric or character vector."))
   }
 
   if (!is.numeric(priority)) {
