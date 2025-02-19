@@ -22,6 +22,7 @@
 #' @import dplyr
 #' @import fs
 #' @importFrom parallel parallel
+#' @importFrom purrr list_assign
 #' @export
 parallel_model_comparison <- function(
     fun,
@@ -87,23 +88,26 @@ parallel_model_comparison <- function(
     # Model label
     current_model_label <- table_model_info$model_name[i]
 
-    # Prepare the arguments for the model
-
+    # ---- Prepare Model Arguments ----
+    # Copy arguments
     model_args = args
 
-    par_values <- as.list(table_model_info[i, pars])
+    # get the current parameter values
+    char_table <- table_model_info
+    char_table[] <- lapply(char_table, function(x) if (is.factor(x)) as.character(x) else x)
+    par_values <- as.list(char_table[i, names(pars)])
 
-    if (!is.null(form_fun)) model_args[["formula"]] <- do.call(form_fun, args = par_values)
-    if (!is.null(model_fun)) model_args[["model"]] <- do.call(model_fun, args = par_values)
-    if (!is.null(prior_fun)) model_args[["prior"]] <- do.call(prior_fun, args = par_values)
-
+    # Update model arguments
+    if (is.function(form_fun)) model_args$formula <-  do.call(form_fun, args = par_values)
+    if (is.function(model_fun)) model_args$model <- do.call(model_fun, args = par_values)
+    if (is.function(prior_fun)) model_args$prior <- do.call(prior_fun, args = par_values)
     model_args[["file"]] <- gsub(".rds", "", table_model_info$model_file[i])
 
     # ---- Run Model ----
     smart_runFun(
-      fun = bmm,
-      untilFinished = NULL,
+      fun = fun,
       args = model_args,
+      untilFinished = NULL,
       maxCore = maxCore,
       priority = 1,
       name = current_model_label
