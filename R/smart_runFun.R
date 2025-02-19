@@ -145,8 +145,7 @@ smart_runFun <- function(
       running_check = WaitIndex == 1 & needCores <= (maxCore - usingCore) & queue == 0
 
       if (running_check) {
-
-        cat(sprintf("\rThe task is now running ...                                                \n\n"))
+        cat(sprintf("\rThe task is now running ...                                                    \n\n"))
         flush.console()
         break
       } else {
