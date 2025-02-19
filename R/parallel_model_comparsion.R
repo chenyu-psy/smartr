@@ -87,35 +87,23 @@ parallel_model_comparison <- function(
     # Model label
     current_model_label <- table_model_info$model_name[i]
 
+    # Prepare the arguments for the model
+
+    model_args = args
+
+    par_values <- as.list(table_model_info[i, pars])
+
+    if (!is.null(form_fun)) model_args[["formula"]] <- do.call(form_fun, args = par_values)
+    if (!is.null(model_fun)) model_args[["model"]] <- do.call(model_fun, args = par_values)
+    if (!is.null(prior_fun)) model_args[["prior"]] <- do.call(prior_fun, args = par_values)
+
+    model_args[["file"]] <- gsub(".rds", "", table_model_info$model_file[i])
+
     # ---- Run Model ----
     smart_runFun(
-      fun = function(fun, form_fun, model_fun, prior_fun, pars, args, path, iModel) {
-        table_model_info <- readRDS(path)
-
-        par_values <- as.list(table_model_info[iModel, pars])
-
-        # Import model parameters
-        if (!is.null(form_fun)) args[["formula"]] <- do.call(form_fun, args = par_values)
-        if (!is.null(model_fun)) args[["model"]] <- do.call(model_fun, args = par_values)
-        if (!is.null(prior_fun)) args[["prior"]] <- do.call(prior_fun, args = par_values)
-
-        args[["file"]] <- gsub(".rds", "", table_model_info$model_file[iModel])
-
-        # Run the model
-        do.call(fun, args = args)
-      },
+      fun = bmm,
       untilFinished = NULL,
-      args = list(
-        fun = fun,
-        form_fun = form_fun,
-        model_fun = model_fun,
-        prior_fun = prior_fun,
-        pars = names(pars),
-        args = args,
-        path = file_model_table,
-        iModel = i
-      ),
-      cores = args$cores,
+      args = model_args,
       maxCore = maxCore,
       priority = 1,
       name = current_model_label
