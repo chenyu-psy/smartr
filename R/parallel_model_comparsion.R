@@ -103,7 +103,7 @@ parallel_model_comparison <- function(
         # Run the model
         do.call(fun, args = args)
       },
-      untilFinished = FALSE,
+      untilFinished = NULL,
       args = list(
         fun = fun,
         form_fun = form_fun,

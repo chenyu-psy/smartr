@@ -82,7 +82,7 @@ smart_runFun <- function(
   } else if (is.numeric(untilFinished)) {
     untilFinished = paste(untilFinished,collapse=",")
   } else {
-    stop("The untilFinished should be a numeric vector.")
+    stop(paste0("Error in `untilFinished` parameter: ", untilFinished, ". It must be a numeric or character vector."))
   }
 
   # append the job to the job log
