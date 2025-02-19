@@ -21,6 +21,7 @@
 #'
 #' @import dplyr
 #' @import fs
+#' @importFrom parallel parallel
 #' @export
 parallel_model_comparison <- function(
     fun,
@@ -88,10 +89,10 @@ parallel_model_comparison <- function(
 
     # ---- Run Model ----
     smart_runFun(
-      fun = function(fun, form_fun, model_fun, prior_fun, args, path, iModel) {
+      fun = function(fun, form_fun, model_fun, prior_fun, pars, args, path, iModel) {
         table_model_info <- readRDS(path)
 
-        par_values <- as.list(table_model_info[iModel, names(pars)])
+        par_values <- as.list(table_model_info[iModel, pars])
 
         # Import model parameters
         if (!is.null(form_fun)) args[["formula"]] <- do.call(form_fun, args = par_values)
@@ -109,6 +110,7 @@ parallel_model_comparison <- function(
         form_fun = form_fun,
         model_fun = model_fun,
         prior_fun = prior_fun,
+        pars = names(pars),
         args = args,
         path = file_model_table,
         iModel = i
