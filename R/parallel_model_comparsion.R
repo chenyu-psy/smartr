@@ -147,5 +147,4 @@ parallel_model_comparison <- function(
 
   }
 
-  return(table_model_info)
 }
