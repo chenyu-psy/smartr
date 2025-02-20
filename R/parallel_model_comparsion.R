@@ -55,7 +55,9 @@ parallel_model_comparison <- function(
   file_model_table <- tempfile(fileext = ".rds")
 
   # ---- Create Model Table ----
-  table_model_info <- do.call(base::expand.grid, args = pars) %>%
+  grid_args <- pars
+  grid_args$stringsAsFactors = FALSE
+  table_model_info <- do.call(base::expand.grid, args = grid_args) %>%
     mutate(
       part_name = apply(across(everything()), 1, function(row)
         paste(names(row), row, sep = "", collapse = "_")
@@ -93,9 +95,7 @@ parallel_model_comparison <- function(
     model_args = args
 
     # get the current parameter values
-    char_table <- table_model_info
-    char_table[] <- lapply(char_table, function(x) if (is.factor(x)) as.character(x) else x)
-    par_values <- as.list(char_table[i, names(pars)])
+    par_values <- as.list(table_model_info[i, names(pars)])
 
     # Update model arguments
     if (is.function(form_fun)) model_args$formula <-  do.call(form_fun, args = par_values)
