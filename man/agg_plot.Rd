@@ -11,7 +11,7 @@ agg_plot(
   within = NULL,
   group = NULL,
   ci = 0.95,
-  zero.rm = T
+  zero.rm = TRUE
 )
 }
 \arguments{
