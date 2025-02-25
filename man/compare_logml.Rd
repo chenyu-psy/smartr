@@ -2,20 +2,21 @@
 % Please edit documentation in R/compare_logml.R
 \name{compare_logml}
 \alias{compare_logml}
-\title{Compare log marginal likelihood of different models}
+\title{Compare Log Marginal Likelihood of Different Models}
 \usage{
 compare_logml(pars, sample_path, sample_prefix)
 }
 \arguments{
-\item{pars}{A list of parameters to compare.}
+\item{pars}{List. A named list of parameters to compare.}
 
-\item{sample_path}{The path to the samples.}
+\item{sample_path}{Character. The directory where the sample files are stored.}
 
-\item{sample_prefix}{The prefix of the samples.}
+\item{sample_prefix}{Character. The prefix of the sample filenames.}
 }
 \value{
-A table with the log marginal likelihood of the different models.
+A data frame containing log marginal likelihoods for different models.
 }
 \description{
-This function compares the log marginal likelihood of different models.
+This function compares the log marginal likelihood (logml) of different models
+based on saved samples.
 }
