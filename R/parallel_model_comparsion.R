@@ -1,65 +1,64 @@
-
-
-#' Do all the model comparisons.
+#' Perform Parallel Model Comparisons
 #'
-#' @description This function is used to compare the models. The function will run the model in parallel and calculate the Bayes Factor.
+#' @description
+#' This function compares multiple models using parallel execution. It fits models, runs bridge sampling,
+#' and calculates Bayes Factors.
 #'
-#' @param fun The function to run the model supports only the `brms` model and the `bmm` model.
-#' @param pars A list of parameters to compare. Each parameter is a list of values.
-#' @param form_fun The function to generate the formula. The default is `NULL`.
-#' @param model_fun The function to generate the model. This parameter only supports the `bmm` model.
-#' @param prior_fun The function to generate the prior. The default is `NULL`.
-#' @param args The arguments of the function to run in parallel.
-#' @param sampler_args The arguments of the bridge_sampler function. The default is `NULL`.
-#' @param model_name The name of the model. The default is `Model`.
-#' @param model_path The path to store the model.
-#' @param sample_path The path to store the sample.
-#' @param maxCore The maximum number of cores that can be used to run the function.
-#' @param sample_check Logical. If `TRUE`, the function will check whether the sample exists. The default is `TRUE`.
+#' @param fun Function. The function used to fit models (supports `brms` and `bmm` models).
+#' @param pars List. A named list of parameter values to compare.
+#' @param form_fun Function. A function to generate model formulas (default is `NULL`).
+#' @param model_fun Function. A function to generate models (supports `bmm` models only, default is `NULL`).
+#' @param prior_fun Function. A function to generate prior distributions (default is `NULL`).
+#' @param args List. Additional arguments passed to the model-fitting function.
+#' @param sampler_args List. Arguments for `bridge_sampler` (default: `{cores = 1, repetition = 10, maxiter = 1000}`).
+#' @param model_name Character. The base name for models (default: `"Model"`).
+#' @param model_path Character. The directory to store models.
+#' @param sample_path Character. The directory to store bridge sampling results.
+#' @param maxCore Integer. The maximum number of cores to use (default is system limit).
+#' @param sample_check Logical. If `TRUE`, checks whether samples exist before running (default: `TRUE`).
 #'
-#' @return A table of the model comparison.
+#' @return A data frame containing the model comparison table.
 #'
-#'@importFrom rlang .data
-#'@export
-#'
-parallel_model_comparsion <- function(
-    fun = brms::brm,
+#' @import dplyr
+#' @import fs
+#' @importFrom purrr list_assign
+#' @export
+parallel_model_comparison <- function(
+    fun,
     pars,
     form_fun = NULL,
     model_fun = NULL,
     prior_fun = NULL,
     args,
-    sampler_args = NULL,
+    sampler_args = list(cores = 1, repetition = 10, maxiter = 1000),
     model_name = "Model",
     model_path,
     sample_path,
     maxCore = NULL,
     sample_check = TRUE) {
 
-  # sample name
-  if (stringr::str_detect(model_name, "Model|model")) {
-    sample_name <-
-      gsub("Model", "Sample", model_name, ignore.case = TRUE)
+  # ---- Input Validation ----
+  if (!is.function(fun)) stop("`fun` must be a valid function.")
+  if (!is.list(pars) || length(names(pars)) == 0) stop("`pars` must be a named list.")
+  if (!dir.exists(model_path)) stop("`model_path` does not exist: ", model_path)
+  if (!dir.exists(sample_path)) stop("`sample_path` does not exist: ", sample_path)
+
+  # Generate sample names
+  sample_name <- if (grepl("Model|model", model_name, ignore.case = TRUE)) {
+    gsub("Model", "Sample", model_name, ignore.case = TRUE)
   } else {
-    sample_name <- paste("Sample", model_name, sep = "_")
+    paste("Sample", model_name, sep = "_")
   }
 
-  # if sampler is NULL, set the default value
-  if (is.null(sampler_args)) {
-    sampler_args <- list(
-      cores = 1,
-      repetition = 10,
-      maxiter = 1000
-    )
-  }
+  # Temporary file for storing model info
+  file_model_table <- tempfile(fileext = ".rds")
 
-  # temporary file used to store the model information
-  File_model_table <- tempfile(fileext = ".rds")
-
-  # Table for the model comparison
-  Table_model_info <- do.call(base::expand.grid, args = pars) %>%
-    dplyr::mutate(
-      part_name = apply(dplyr::across(dplyr::everything()), 1, function(row)
+  # ---- Create Model Table ----
+  grid_args <- pars
+  grid_args$stringsAsFactors = FALSE
+  table_model_info <- do.call(base::expand.grid, args = grid_args) %>%
+    mutate(
+      part_name = apply(across(everything()), 1, function(row)
         paste(names(row), row, sep = "", collapse = "_")
       ),
       model_name = paste0(model_name, "_", part_name),
@@ -69,107 +68,80 @@ parallel_model_comparsion <- function(
       logBF = NA,
       reliability = NA,
       best_model = NA,
-      model_file = paste0(model_path, .data$model_name, ".rds"),
-      sample_file = paste0(sample_path, .data$sample_name, ".rds"),
-      model_ck = as.integer(file.exists(.data$model_file)),
-      sample_ck = as.integer(file.exists(.data$sample_file))
+      model_file = path(model_path, paste0(model_name, ".rds")),
+      sample_file = path(sample_path, paste0(sample_name, ".rds")),
+      model_ck = as.integer(file.exists(model_file)),
+      sample_ck = as.integer(file.exists(sample_file))
     ) %>%
-    dplyr::select(-.data$part_name)
+    select(-part_name)
 
-  base::saveRDS(Table_model_info, file = File_model_table)
+  saveRDS(table_model_info, file = file_model_table)
 
-  # fit the model and run bridge sampler
-  for (i in 1:nrow(Table_model_info)) {
+  # ---- Run Models and Bridge Sampling in Parallel ----
+  for (i in seq_len(nrow(table_model_info))) {
 
-    # check if the model has been run, if so, skip
-    Table_model_info <- readRDS(File_model_table)
-    if (sample_check & Table_model_info[i, "sample_ck"] == 1)
-      next
+    # Reload the model table
+    table_model_info <- readRDS(file_model_table)
 
-    # model name
-    current_model_label <- Table_model_info$model_name[i]
+    # Skip if the sample already exists
+    if (sample_check && table_model_info$sample_ck[i] == 1) next
 
-    # run the model in job
+    # Model label
+    current_model_label <- table_model_info$model_name[i]
+
+    # ---- Prepare Model Arguments ----
+    # Copy arguments
+    model_args = args
+
+    # get the current parameter values
+    par_values <- as.list(table_model_info[i, names(pars)])
+
+    # Update model arguments
+    if (is.function(form_fun)) model_args$formula <-  do.call(form_fun, args = par_values)
+    if (is.function(model_fun)) model_args$model <- do.call(model_fun, args = par_values)
+    if (is.function(prior_fun)) model_args$prior <- do.call(prior_fun, args = par_values)
+    model_args[["file"]] <- gsub(".rds", "", table_model_info$model_file[i])
+
+    # ---- Run Model ----
     smart_runFun(
-      fun = function(fun,
-                     form_fun,
-                     model_fun,
-                     prior_fun,
-                     args,
-                     path,
-                     iModel) {
-
-        Table_model_info <- readRDS(path)
-
-        par_values <- as.list(Table_model_info[iModel,names(pars)])
-
-        # Import the model information
-        if (!is.null(form_fun))
-          args[["formula"]] <- do.call(form_fun, args = par_values)
-        if (!is.null(model_fun))
-          args[["model"]] <- do.call(model_fun, args = par_values)
-        if (!is.null(prior_fun))
-          args[["prior"]] <- do.call(prior_fun, args = par_values)
-        args[["file"]] <- gsub(".rds", "", Table_model_info[iModel, "model_file"])
-
-        # Run the model
-        do.call(fun, args = args)
-
-      },
-      untilFinished = FALSE,
-      args = list(
-        fun = fun,
-        form_fun = form_fun,
-        model_fun = model_fun,
-        prior_fun = prior_fun,
-        args = args,
-        path = File_model_table,
-        iModel = i
-      ),
-      cores = args$cores,
+      fun = fun,
+      args = model_args,
+      untilFinished = NULL,
       maxCore = maxCore,
       priority = 1,
       name = current_model_label
     )
 
-    # get the index of model
-    Job_info <- view_job()
-    index_model <-
-      which(Job_info$name == current_model_label)
+    # Get model index
+    job_info <- view_job()
+    index_model <- which(job_info$name == current_model_label)
 
-
-    # bridge sampling
+    # ---- Run Bridge Sampling ----
     smart_runFun(
       fun = function(table_path, iModel, sampler_args) {
-        Table_model_info <- readRDS(table_path)
+        table_model_info <- readRDS(table_path)
 
-        # Import the model information
-        model_file <- Table_model_info$model_file[iModel]
-        sample_file <- Table_model_info$sample_file[iModel]
+        # File paths
+        model_file <- table_model_info$model_file[iModel]
+        sample_file <- table_model_info$sample_file[iModel]
 
         if (!file.exists(sample_file)) {
-          # read the model
           model <- readRDS(model_file)
-
-          # Run the bridge sampling
-          sampler_args$samples = model
+          sampler_args$samples <- model
           sample <- do.call(brms::bridge_sampler, sampler_args)
-
-          # save the sample
           saveRDS(sample, sample_file)
         }
-
       },
       untilFinished = index_model,
       args = list(
-        table_path = File_model_table,
+        table_path = file_model_table,
         iModel = i,
         sampler_args = sampler_args
       ),
       cores = sampler_args$cores,
       maxCore = maxCore,
       priority = 1,
-      name = Table_model_info$sample_name[i]
+      name = table_model_info$sample_name[i]
     )
 
   }

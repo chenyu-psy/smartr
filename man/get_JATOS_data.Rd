@@ -23,6 +23,8 @@ get_JATOS_data(
 \item{batchId}{A unique code of a batch session in the study.}
 
 \item{dataPath}{A path used to save data. If NUll, data will be saved in working directory.}
+
+\item{extractInfo}{A list of keys to extract from the data file. Default is NULL.}
 }
 \value{
 data.frame
