@@ -3,9 +3,9 @@ name: Auto Release Package
 on:
   push:
     branches:
-      - main  # Change this if your main branch has a different name
+      - main
     paths:
-      - DESCRIPTION  # Trigger only when the DESCRIPTION file changes
+      - DESCRIPTION
 
 jobs:
   release:
@@ -14,6 +14,13 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch full history for tagging
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Get Version from DESCRIPTION
         id: get_version
@@ -21,6 +28,11 @@ jobs:
           VERSION=$(grep '^Version:' DESCRIPTION | awk '{print $2}')
           echo "PACKAGE_VERSION=$VERSION" >> $GITHUB_ENV
           echo "Detected version: $VERSION"
+
+      - name: Delete existing tag if it exists
+        run: |
+          git tag -d v${{ env.PACKAGE_VERSION }} || true
+          git push --delete origin v${{ env.PACKAGE_VERSION }} || true
 
       - name: Create and Push Git Tag
         run: |
