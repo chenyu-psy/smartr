@@ -21,7 +21,6 @@
 #'
 #' @import dplyr
 #' @import fs
-#' @importFrom parallel parallel
 #' @importFrom purrr list_assign
 #' @export
 parallel_model_comparison <- function(
