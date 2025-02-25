@@ -2,7 +2,7 @@
 % Please edit documentation in R/smart_runFun.R
 \name{smart_runFun}
 \alias{smart_runFun}
-\title{Run the function in job with the waiting list}
+\title{Run a Function as a Job with a Waiting List}
 \usage{
 smart_runFun(
   fun,
@@ -17,25 +17,25 @@ smart_runFun(
 )
 }
 \arguments{
-\item{fun}{The function to run in parallel.}
+\item{fun}{A function to be run in parallel.}
 
-\item{args}{The arguments of the function to run in parallel.}
+\item{args}{A list of arguments for `fun`.}
 
-\item{untilFinished}{NULL or index. If it is an index or a vector of indices, the function will not run until the functions with the same index are finished.}
+\item{untilFinished}{NULL or a numeric vector. If provided, the function will not run until the specified jobs are completed.}
 
-\item{cores}{The number of cores required to run the function}
+\item{cores}{The number of cores required to run the function.}
 
-\item{maxCore}{The maximum number of cores that can be used to run the function}
+\item{maxCore}{The maximum number of cores available for execution.}
 
-\item{priority}{The priority of the function The code with a higher priority will be run first.}
+\item{priority}{The priority level of the function. Higher priority jobs are executed first.}
 
-\item{checkInt}{The interval to check the job log.}
+\item{checkInt}{The time interval (in seconds) for checking the job log.}
 
-\item{name}{The name of the job.}
+\item{name}{A name for the job. If `NULL`, a random identifier is generated.}
 
-\item{export}{The name of the object to export to the global environment.}
+\item{export}{A character vector specifying objects to export to the global environment.}
 }
 \description{
-This function is used to run the code in parallel with the waiting list.
-It relies on the `job` package to manage the job log.
+This function runs a function in parallel while managing execution with a waiting list.
+It uses the `job` package to manage job logs and execution.
 }
