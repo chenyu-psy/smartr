@@ -1,7 +1,7 @@
 Package: smartr
 Type: Package
 Title: What the Package Does (Title Case)
-Version: 0.2.0
+Version: 0.2.1
 Author: person("Chenyu", "Li", email = "chenyu.li.hz@gmail.com", role = c("aut", "cre"))
 Maintainer: The package maintainer <chenyu.li.hz@gmail.com>
 Description: More about what it does (maybe more than one line)
