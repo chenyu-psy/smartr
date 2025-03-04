@@ -17,7 +17,7 @@
 #' @importFrom dplyr add_row
 #' @importFrom httr GET add_headers write_disk
 #' @importFrom jsonlite read_json
-#' @importFrom stringr str_glue str_extract_all
+#' @importFrom stringr str_glue str_extract_all str_remove
 #'
 #' @export
 #'
