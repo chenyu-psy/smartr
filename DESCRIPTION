@@ -1,8 +1,9 @@
 Package: smartr
 Type: Package
-Title: What the Package Does (Title Case)
-Version: 0.2.1
-Author: person("Chenyu", "Li", email = "chenyu.li.hz@gmail.com", role = c("aut", "cre"))
+Title: Smart Ways to Run Bayesian Models on JATOS Data
+Version: 0.2.2
+Author: c(person("Chenyu", "Li", email = "chenyu.li.hz@gmail.com", role = c("aut", "cre")),
+          person("Joscha", "Dutli", email = "joscha.dutli@psychologie.uzh.ch", role = c("aut")))
 Maintainer: The package maintainer <chenyu.li.hz@gmail.com>
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
