@@ -76,3 +76,72 @@ relabel <- function(x, labels, factor = TRUE) {
     return(unname(labels[x]))
   }
 }
+
+
+
+
+#' Read the key information from a data file
+#'
+#' This function extracts key-value pairs from a text-based data file.
+#'
+#' @param file A string specifying the path to the data file.
+#' @param keys A character vector of keys to extract from the file.
+#' @return A named list where each key contains its extracted values, or NA if an issue occurs.
+#'
+#' @importFrom stringr str_extract_all
+#' @importFrom purrr map
+#'
+#' @export
+#'
+read_keys_info <- function(file = NULL, keys = NULL, warn = TRUE) {
+
+
+  # Check if the file exists
+  if (is.null(file) || !file.exists(file)) {
+    if (warn) message("The specified file does not exist: ", file)
+    return(NA)
+  }
+
+  # Check if keys are provided and are character type
+  if (is.null(keys)) {
+    message("No keys provided.")
+    return(NA)
+  } else if (!is.character(keys)) {
+    message("Keys must be a character vector.")
+    return(NA)
+  }
+
+
+  # Define function to extract values for a given key
+  extract_values <- function(key, file) {
+
+    # Read file content
+    file_content <- suppressMessages(readLines(file, warn = FALSE))  # Suppress warnings for incomplete final line
+
+    # Collapse lines into a single string (important for multi-line JSON)
+    file_content <- paste(file_content, collapse = " ")
+
+    # Adjust regex pattern to robustly capture JSON key-value pairs
+    pattern <- sprintf('"%s"\\s*:\\s*(?:"([^"]+)"|([0-9]+))', key)
+
+    # Extract matches
+    matches <- stringr::str_match_all(file_content, pattern)[[1]]
+
+    # If matches are found, extract the non-empty column (either string or number)
+    if (nrow(matches) > 0) {
+      extracted_values <- ifelse(is.na(matches[,2]), matches[,3], matches[,2])
+      return(unique(extracted_values))
+    } else {
+      return(NA)
+    }
+  }
+
+
+  # Apply extraction function to all keys using purrr::map()
+  extractList <- purrr::map(setNames(keys, keys), ~ extract_values(.x, file))
+
+  return(extractList)
+}
+
+
+

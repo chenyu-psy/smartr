@@ -52,106 +52,26 @@ get_JATOS_data <- function(token,
 
     # Read the metadata from the last file in the list (assuming it is in JSON format)
     metaData_path <- str_glue("{file_unzip}/metadata.json")
-    metaData <- read_json(metaData_path)$data[[1]]$studyResults
+    metaData <- read_metaData(metaData_path)
 
-    # Extract relevant metadata from the metadata list and store in a data frame
-    info_table <- data.frame(
-      studyId = numeric(),
-      batchId = numeric(),
-      resultId = numeric(),
-      componentId = numeric(),
-      studyState = character(),
-      startTime = POSIXct(),
-      endTime = POSIXct(),
-      duration = numeric(),
-      file = character(),
-      fileSize = numeric()
-    )
-
-    # Add new columns for extracted information
+    # Read the key information from the data file
     if (!is.null(extractInfo)) {
-      for (col in extractInfo) {
-        info_table[[col]] <- character()
-      }
-    }
+      info_table <- metaData %>%
+        dplyr::mutate(extracted = purrr::map(file, ~ read_keys_info(.x, extractInfo, warn=F))) %>%
+        tidyr::unnest_wider(extracted, names_sep = "_")   # Expand list columns into separate columns
 
-    for (a in 1:length(metaData)) {
-      # result data
-      resultData = metaData[[a]]
-
-      for (c in 1:length(resultData$componentResults)) {
-        # component data
-        compData = resultData$componentResults[[c]]
-
-        # correct the start time and end time
-        if (is.null(compData$startDate)) {
-          startTime = NA
-        } else {
-          startTime = as.POSIXct(compData$startDate / 1000, origin = "1970-01-01")
-        }
-
-        if (is.null(compData$endDate)) {
-          endTime = NA
-          duration = NA
-        } else {
-          endTime = as.POSIXct(compData$endDate / 1000, origin = "1970-01-01")
-          duration = round(diff(c(startTime, endTime), units = "mins")[[1]], 2)
-        }
-
-        # check if the file is in the file list
-        file_path <- str_glue(
-          "{file_unzip}/study_result_{resultData$id}/comp-result_{compData$id}/data.txt"
-        )
-        file_path <- ifelse(file_path %in% filelist, file_path, NA)
-
-        # check the file size and participant ID
-        if (!is.na(file_path)) {
-          # Extract the information from the file
-          if (!is.null(extractInfo)) {
-            file <- suppressWarnings(readLines(file_path))
-
-            extractList <- list()
-
-            for (key in extractInfo) {
-              # Use sprintf to build a dynamic regex pattern
-              pattern <- sprintf('(?<="%s":")\\w+', key)
-
-              # Extract the value associated with the key
-              extractList[[key]] <- unique(str_extract_all(file, pattern)[[1]])
-            }
-          }
-
-          fileSize <- file.info(file_path)$size / 1024
-
-        } else {
-          extractList <- list()
-          fileSize <- NA
-        }
-
-        # Add the metadata to the data frame
+      # Remove the original extracted column
+      if ("extracted_1" %in% names(info_table)) {
         info_table <- info_table %>%
-          add_row(
-            studyId = studyId,
-            batchId = batch,
-            resultId = resultData$id,
-            componentId = compData$id,
-            studyState = compData$componentState,
-            startTime = startTime,
-            endTime = endTime,
-            duration = duration,
-            file = file_path,
-            fileSize = fileSize
-          )
-
-        # Add extracted information to the data frame
-        if (!is.null(extractInfo)) {
-          for (key in extractInfo) {
-            info_table[[key]][nrow(info_table)] <- paste(extractList[[key]], collapse = ",")
-          }
-        }
-
-
+          dplyr::select(-extracted_1)  # Remove the original extracted column
       }
+
+      # rename the columns
+      info_table <- info_table %>%
+        rename_with(~ str_remove(.x, "^extracted_"), starts_with("extracted_"))
+
+    } else {
+      info_table <- metaData
     }
   }
 

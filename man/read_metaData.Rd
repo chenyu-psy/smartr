@@ -7,11 +7,11 @@
 read_metaData(path)
 }
 \arguments{
-\item{path}{The path to the directory containing the metadata file}
+\item{path}{A string specifying the directory containing the metadata file.}
 }
 \value{
-data.frame
+A data frame containing study results.
 }
 \description{
-This function reads the metadata file and extracts the relevant information
+This function reads a metadata JSON file and extracts relevant study information
 }
