@@ -49,6 +49,11 @@ smart_runFun <- function(
   # Assign `cores` if it is defined inside `args`
   cores <- if (is.null(cores) && "cores" %in% names(args)) args$cores else if (is.null(cores)) 1 else cores
 
+  # If `threads` is provided in the args, recalculate the cores
+  if ("threads" %in% names(args)) {
+    cores <- cores * args$threads$threads
+  }
+
   # Assign `maxCore` if not defined
   maxCore <- if (is.null(maxCore)) machineCore else maxCore
 
