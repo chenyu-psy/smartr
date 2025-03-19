@@ -4,12 +4,15 @@
 \alias{save_plot}
 \title{Save a ggplot with Flexible Format Handling}
 \usage{
-save_plot(plot, filename, width = 8, height = 6, dpi = 300, ...)
+save_plot(plot, filename, path = NULL, width = 8, height = 6, dpi = 300, ...)
 }
 \arguments{
 \item{plot}{A ggplot2 object to be saved.}
 
 \item{filename}{Character string specifying the output filename (with extension).}
+
+\item{path}{Character string specifying the directory where the plot should be saved.
+If NULL (default), the current working directory is used.}
 
 \item{width}{Numeric value for the width of the output in inches. Default is 8.}
 
@@ -27,19 +30,4 @@ This function saves a ggplot object in various formats. It intelligently handles
 file extensions to determine the output format. For SVG output, it saves directly.
 For all other formats (PDF, PNG, JPG, etc.), it first saves as PDF and then
 converts to the target format if needed. For unsupported formats, it saves as PDF.
-}
-\examples{
-\dontrun{
-library(ggplot2)
-p <- ggplot(mtcars, aes(x = mpg, y = wt)) + geom_point(alpha = 0.5)
-# Save as PDF
-save_plot(p, "my_plot.pdf")
-# Save as SVG directly
-save_plot(p, "my_plot.svg")
-# Save as PNG (with PDF intermediate)
-save_plot(p, "my_plot.png")
-# With additional ggsave parameters
-save_plot(p, "my_plot.png", bg = "white", units = "cm")
-}
-
 }
