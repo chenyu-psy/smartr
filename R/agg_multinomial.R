@@ -29,11 +29,6 @@ agg_multinomial <- function(
     base::stop("responses must be a character vector")
   }
 
-  # check the number of responses
-  if (base::length(responses) < 2) {
-    base::stop("responses must have at least two elements")
-  }
-
   # Add response column to group
   new_group = c(group, "response")
 
