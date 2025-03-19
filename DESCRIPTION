@@ -25,6 +25,7 @@ Imports:
     fs,
     job,
     brms,
+    pdftools,
     bridgesampling
 Suggests:
     testthat (>= 3.0.0),
