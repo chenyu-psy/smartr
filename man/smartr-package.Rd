@@ -4,7 +4,7 @@
 \name{smartr-package}
 \alias{smartr}
 \alias{smartr-package}
-\title{smartr: What the Package Does (Title Case)}
+\title{smartr: Smart Ways to Run Bayesian Models on JATOS Data}
 \description{
 More about what it does (maybe more than one line) Use four spaces when indenting paragraphs within the Description.
 }
