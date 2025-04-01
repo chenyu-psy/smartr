@@ -84,6 +84,7 @@ read_metaData <- function(path) {
 
       # Return as a data frame row
       data.frame(
+        batchId = resultData$batchId,
         resultId = resultData$id,
         componentId = compData$id,
         studyState = compData$componentState,
