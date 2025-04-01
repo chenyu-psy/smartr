@@ -36,7 +36,7 @@ get_JATOS_data <- function(token,
   # Read the data from the JATOS server
   for (batch in batchId) {
     # Create the file paths for the zipped and unzipped data
-    file_zip <- str_glue("{tempdir()}/JATOS_DATA_{batch}.jrzip")
+    file_zip <- str_glue("{tempdir()}JATOS_DATA_{batch}.jrzip")
     file_unzip <- str_glue("{dataPath}JATOS_DATA_{batch}")
 
     # Send an HTTP GET request to the specified URL, passing in the UUID and batch ID
