@@ -10,6 +10,8 @@ read_keys_info(file = NULL, keys = NULL, warn = TRUE)
 \item{file}{A string specifying the path to the data file.}
 
 \item{keys}{A character vector of keys to extract from the file.}
+
+\item{warn}{Logical. If `TRUE`, warnings are displayed when issues occur.}
 }
 \value{
 A named list where each key contains its extracted values, or NA if an issue occurs.

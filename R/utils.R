@@ -86,6 +86,7 @@ relabel <- function(x, labels, factor = TRUE) {
 #'
 #' @param file A string specifying the path to the data file.
 #' @param keys A character vector of keys to extract from the file.
+#' @param warn Logical. If `TRUE`, warnings are displayed when issues occur.
 #' @return A named list where each key contains its extracted values, or NA if an issue occurs.
 #'
 #' @importFrom stringr str_extract_all

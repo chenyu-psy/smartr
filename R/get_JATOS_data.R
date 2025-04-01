@@ -15,7 +15,7 @@
 #'
 #' @importFrom rlang .data
 #' @importFrom dplyr add_row
-#' @importFrom httr GET add_headers write_disk
+#' @importFrom httr GET add_headers write_disk status_code
 #' @importFrom jsonlite read_json
 #' @importFrom stringr str_glue str_extract_all str_remove
 #'
@@ -39,16 +39,23 @@ get_JATOS_data <- function(token,
     file_zip <- str_glue("{tempdir()}JATOS_DATA_{batch}.jrzip")
     file_unzip <- str_glue("{dataPath}JATOS_DATA_{batch}")
 
-    # Send an HTTP GET request to the specified URL, passing in the UUID and batch ID
-    # Also pass in the authorization header and write the response to a temporary file
-    res <- GET(
-      url = str_glue("{url}?studyId={studyId}&batchId={batch}"),
-      add_headers(.headers = headers),
-      write_disk(file_zip, overwrite = TRUE)
-    )
+    tryCatch({
+      res <- GET(
+        url = str_glue("{url}?studyId={studyId}&batchId={batch}"),
+        add_headers(.headers = headers),
+        write_disk(file_zip, overwrite = TRUE)
+      )
 
-    # Unzip the downloaded file and extract the file names into a list
-    filelist = utils::unzip(file_zip, exdir = file_unzip, overwrite = TRUE)
+      if (status_code(res) == 200) {
+        message(str_glue("Successfully downloaded data for batch {batch}."))
+        filelist = utils::unzip(file_zip, exdir = file_unzip, overwrite = TRUE)
+      } else {
+        warning(str_glue("Failed to download data. Status code: {status_code(res)}"))
+      }
+    }, error = function(e) {
+      warning(str_glue("Error during download: {e$message}"))
+    })
+
 
     # Read the metadata from the last file in the list (assuming it is in JSON format)
     metaData_path <- str_glue("{file_unzip}/metadata.json")
