@@ -537,8 +537,8 @@ extract_data_info <- function(metaData, info, warn = FALSE) {
 #' @export
 read_json_data <- function(files) {
   # Input validation
-  if (!is.vector(files)) {
-    stop("'files' must be a vector of file paths", call. = FALSE)
+  if (!is.character(files) | is.factor(files)) {
+    stop("'files' must be a vector of characters file paths", call. = FALSE)
   }
 
   # Remove NA values from the files vector
