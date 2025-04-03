@@ -4,7 +4,7 @@
 \alias{read_metaData}
 \title{Read the files information from the metadata file}
 \usage{
-read_metaData(path)
+read_metaData(metaData_path)
 }
 \arguments{
 \item{path}{A string specifying the directory containing the metadata file.}
