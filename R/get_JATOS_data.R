@@ -1,17 +1,24 @@
 #' Download data from JATOS
 #'
-#' This function downloads result data from a JATOS server using an API token and specified study ID and batch ID.
-#' It then unzips and extracts the relevant data, including metadata, file names, and file contents.
-#' The function returns a data frame with the relevant data.
+#' This function downloads result data from a JATOS (Just Another Tool for Online Studies) server
+#' using an API token and specified study ID and batch ID. It then unzips and extracts the relevant data,
+#' including metadata, file names, and file contents. The function can download all data for specified
+#' batch IDs or only download missing data based on comparison with local files.
 #'
-#' @param token An API token, you can create a new one on JATOS. Details see: https://www.jatos.org/JATOS-API.html#personal-access-tokens
-#' @param url Server address. The default value is the address of our lab server.
-#' @param studyId A unique code of study, you can find it on JATOS
-#' @param batchId A unique code of a batch session in the study.
-#' @param dataPath A path used to save data. If NUll, data will be saved in working directory.
-#' @param extractInfo A list of keys to extract from the data file. Default is NULL.
+#' @param token A character string containing the API token for authentication. You can create a new token
+#'        on JATOS. See: https://www.jatos.org/JATOS-API.html#personal-access-tokens
+#' @param url A character string specifying the server address. The default value is the address of the lab server.
+#' @param studyId A character string or a numeric containing the unique code of the study, available on JATOS.
+#' @param batchId A character vector or numeric vector containing one or more unique codes for batch sessions in the study.
+#'                If it is null, the batchId will be retrieved from the metadata.
+#' @param dataPath A character string specifying the path used to save data. If NULL, data will be saved
+#'        in a "JATOS_DATA" folder in the working directory.
+#' @param attachments A logical value indicating whether to download attachments. Default is FALSE.
+#' @param method A character string specifying the download method. Options are:
+#'        - "all": Download all data for the specified batch IDs (default)
+#'        - "missing": Only download data that is missing or has changed based on file size comparison
 #'
-#' @return data.frame
+#' @return A data frame containing metadata about the downloaded JATOS results.
 #'
 #' @importFrom rlang .data
 #' @importFrom dplyr add_row filter mutate
@@ -19,81 +26,230 @@
 #' @importFrom jsonlite read_json
 #' @importFrom stringr str_glue str_extract_all str_remove
 #'
+#' @examples
+#' \dontrun{
+#' # Download all data for a specific study and batch
+#' data <- get_JATOS_data(
+#'   token = "your_api_token",
+#'   studyId = "your_study_id",
+#'   batchId = c("batch_id_1", "batch_id_2"),
+#'   dataPath = "./data/"
+#' )
+#'
+#' # Download only missing data
+#' missing_data <- get_JATOS_data(
+#'   token = "your_api_token",
+#'   studyId = "your_study_id",
+#'   batchId = c("batch_id_1", "batch_id_2"),
+#'   method = "missing"
+#' )
+#' }
+#'
 #' @export
 #'
 get_JATOS_data <- function(token,
                            url = "https://coglab.xyz/jatos/api/v1/results",
                            studyId,
-                           batchId,
+                           batchId = NULL,
                            dataPath = NULL,
-                           attachments = FALSE) {
+                           attachments = FALSE,
+                           method = "all") {
 
-  # Set the default data path
-  if (is.null(dataPath))
-    dataPath = "./JATOS_DATA/"
-
-  # Check whether the attachments should be downloaded
-  if (!attachments) {
-    data_url = str_glue("{url}/data")
+  # Input validation
+  if (missing(token) || !is.character(token) || length(token) != 1) {
+    stop("Token must be a single character string")
   }
 
-  # Rename the variable `batchId` to avoid conflicts with the function argument
-  batchId_list <- batchId
+  if (!is.character(url) || length(url) != 1) {
+    stop("URL must be a single character string")
+  }
+
+  if (missing(studyId) || !is.character(studyId) || length(studyId) != 1) {
+    stop("Study ID must be a single character string")
+  }
+
+  if (!is.null(dataPath) && (!is.character(dataPath) || length(dataPath) != 1)) {
+    stop("Data path must be NULL or a single character string")
+  }
+
+  if (!is.logical(attachments) || length(attachments) != 1) {
+    stop("Attachments must be a logical value (TRUE or FALSE)")
+  }
+
+  if (!method %in% c("all", "missing")) {
+    stop('Method must be either "all" or "missing"')
+  }
+
+  # Set the default data path and ensure it exists
+  if (is.null(dataPath)) {
+    dataPath <- "./JATOS_DATA/"
+  }
+
+  # Ensure the data path ends with a slash
+  if (!endsWith(dataPath, "/")) {
+    dataPath <- paste0(dataPath, "/")
+  }
+
+  # Create the directory if it doesn't exist
+  if (!dir.exists(dataPath)) {
+    dir.create(dataPath, recursive = TRUE)
+  }
+
+  # Determine the URL based on whether attachments should be downloaded
+  data_url <- ifelse(!attachments, stringr::str_glue("{url}/data"), url)
 
   # Create the authorization header with the specified token
-  headers = c(`Authorization` = str_glue("Bearer {token}"))
+  headers <- c(`Authorization` = stringr::str_glue("Bearer {token}"))
 
-  # Download the metadata from the JATOS server and read it
-  metaData_path <- str_glue("{dataPath}metadata.json")
+  # Download the metadata from the JATOS server
+  metadata_path <- file.path(dataPath, "metadata.json")
+  metadata <- download_metadata(url, studyId, headers, metadata_path)
 
-  tryCatch({
-    res <- GET(
-      url = str_glue("{url}/metadata?studyId={studyId}"),
-      add_headers(.headers = headers),
-      write_disk(metaData_path, overwrite = TRUE)
-    )
+  # If batchId is NULL, get unique batch IDs from metadata
+  batch_ids <- ifelse(is.null(batchId), unique(metaData$batchId), batchId)
 
-    if (status_code(res) == 200) {
-      message(str_glue("Successfully downloaded meta data for study {studyId}."))
-      metaData = read_metaData(metaData_path)
-    } else {
-      warning(str_glue("Failed to download meta data. Status code: {status_code(res)}"))
-    }
-  }, error = function(e) {
-    warning(str_glue("Error during download: {e$message}"))
-  })
-
-  # Download the data from the JATOS server (using batchID)
-  for (batch in batchId) {
-    # Create the file paths for the zipped and unzipped data
-    file_zip <- str_glue("{tempdir()}JATOS_DATA_{batch}.jrzip")
-    file_unzip <- str_glue("{dataPath}JATOS_DATA_{batch}")
-
-    tryCatch({
-      res <- GET(
-        url = str_glue("{data_url}?batchId={batch}"),
-        add_headers(.headers = headers),
-        write_disk(file_zip, overwrite = TRUE)
-      )
-
-      if (status_code(res) == 200) {
-        message(str_glue("Successfully downloaded data for batch {batch}."))
-        filelist = utils::unzip(file_zip, exdir = file_unzip, overwrite = TRUE)
-      } else {
-        warning(str_glue("Failed to download data. Status code: {status_code(res)}"))
-      }
-    }, error = function(e) {
-      warning(str_glue("Error during download: {e$message}"))
-    })
-
+  # Download the data based on the specified method
+  if (method == "all") {
+    download_all_data(data_url, headers, batch_ids, dataPath)
+  } else if (method == "missing") {
+    download_missing_data(metadata, batch_ids, data_url, headers, dataPath)
   }
 
-  # Update the file path to the metadata
-  metaData <- read_metaData(metaData_path)
+  # Update the metadata after downloading
+  updated_metadata <- read_metaData(metadata_path) %>%
+    filter(.data$batchId %in% batch_ids)
 
-  # Return the combined data frame
-  return(metaData)
+  # Return the metadata
+  return(updated_metadata)
 }
+
+#' Download metadata from JATOS
+#'
+#' Helper function to download metadata from the JATOS server.
+#'
+#' @param url Base URL for the JATOS API
+#' @param study_id ID of the study
+#' @param headers HTTP headers including authorization
+#' @param metadata_path Path where metadata will be saved
+#'
+#' @return A data frame containing the metadata
+#'
+#' @keywords internal
+download_metadata <- function(url, study_id, headers, metadata_path) {
+  tryCatch({
+    res <- httr::GET(
+      url = stringr::str_glue("{url}/metadata?studyId={study_id}"),
+      httr::add_headers(.headers = headers),
+      httr::write_disk(metadata_path, overwrite = TRUE)
+    )
+
+    if (httr::status_code(res) == 200) {
+      message(stringr::str_glue("Successfully downloaded metadata for study {study_id}."))
+      metadata <- read_metaData(metadata_path)
+      return(metadata)
+    } else {
+      warning(stringr::str_glue("Failed to download metadata. Status code: {httr::status_code(res)}"))
+      return(NULL)
+    }
+  }, error = function(e) {
+    warning(stringr::str_glue("Error during metadata download: {e$message}"))
+    return(NULL)
+  })
+}
+
+#' Download all data for specified batch IDs
+#'
+#' Helper function to download all data for the specified batch IDs.
+#'
+#' @param data_url URL for downloading data
+#' @param headers HTTP headers including authorization
+#' @param batch_ids Vector of batch IDs
+#' @param data_path Path where data will be saved
+#'
+#' @keywords internal
+download_all_data <- function(data_url, headers, batch_ids, data_path) {
+  for (batch in batch_ids) {
+    # Create the file paths for the zipped and unzipped data
+    file_zip <- file.path(tempdir(), stringr::str_glue("JATOS_DATA_{batch}.jrzip"))
+    file_unzip <- file.path(data_path, stringr::str_glue("JATOS_DATA_{batch}"))
+
+    # Create the directory if it doesn't exist
+    if (!dir.exists(file_unzip)) {
+      dir.create(file_unzip, recursive = TRUE)
+    }
+
+    tryCatch({
+      res <- httr::GET(
+        url = stringr::str_glue("{data_url}?batchId={batch}"),
+        httr::add_headers(.headers = headers),
+        httr::write_disk(file_zip, overwrite = TRUE)
+      )
+
+      if (httr::status_code(res) == 200) {
+        message(stringr::str_glue("Successfully downloaded data for batch {batch}."))
+        filelist <- utils::unzip(file_zip, exdir = file_unzip, overwrite = TRUE)
+      } else {
+        warning(stringr::str_glue("Failed to download data for batch {batch}. Status code: {httr::status_code(res)}"))
+      }
+    }, error = function(e) {
+      warning(stringr::str_glue("Error during download for batch {batch}: {e$message}"))
+    })
+  }
+}
+
+
+
+#' Download missing data based on metadata comparison
+#'
+#' Helper function to download only missing or changed data based on file size comparison.
+#'
+#' @param metadata Data frame containing metadata
+#' @param batch_ids Vector of batch IDs
+#' @param data_url URL for downloading data
+#' @param headers HTTP headers including authorization
+#' @param data_path Path where data will be saved
+#'
+#' @keywords internal
+download_missing_data <- function(metadata, batch_ids, data_url, headers, data_path) {
+  # Filter the metadata to obtain the participants whose data has not been downloaded
+  filtered_metadata <- metadata %>%
+    dplyr::filter(.data$batchId %in% batch_ids) %>%
+    dplyr::mutate(localSize = ifelse(is.na(.data$file), 0, round(file.info(.data$file)$size / 1024, 2))) %>%
+    dplyr::filter(.data$fileSize > 0.5, .data$fileSize > .data$localSize)
+
+  # Download data for each participant
+  for (i in seq_len(nrow(filtered_metadata))) {
+    # Extract batch ID and result ID
+    batch_id <- filtered_metadata$batchId[i]
+    result_id <- filtered_metadata$resultId[i]
+
+    # Create the file paths for the zipped and unzipped data
+    file_zip <- file.path(tempdir(), stringr::str_glue("JATOS_DATA_{result_id}.jrzip"))
+    file_unzip <- file.path(data_path, stringr::str_glue("JATOS_DATA_{batch_id}"))
+
+    # Create the directory if it doesn't exist
+    if (!dir.exists(file_unzip)) {
+      dir.create(file_unzip, recursive = TRUE)
+    }
+
+    tryCatch({
+      res <- httr::GET(
+        url = stringr::str_glue("{data_url}?studyResultId={result_id}"),
+        httr::add_headers(.headers = headers),
+        httr::write_disk(file_zip, overwrite = TRUE)
+      )
+
+      if (httr::status_code(res) == 200) {
+        filelist <- utils::unzip(file_zip, exdir = file_unzip, overwrite = TRUE)
+      } else {
+        warning(stringr::str_glue("Failed to download data for result {result_id}. Status code: {httr::status_code(res)}"))
+      }
+    }, error = function(e) {
+      warning(stringr::str_glue("Error during download for result {result_id}: {e$message}"))
+    })
+  }
+}
+
 
 
 #' Extract Key Information from Data Files
@@ -198,7 +354,7 @@ read_keys_info <- function(file = NULL, keys = NULL, warn = TRUE) {
 #' the extracted information added as columns.
 #'
 #' @param metaData A data frame or tibble containing at least a column named 'file' with paths to data files.
-#' @param extractInfo A character vector of keys to extract from each data file.
+#' @param info A character vector of keys to extract from each data file.
 #' @param warn Logical. Whether to show warnings during extraction. Default is FALSE.
 #'
 #' @return A tibble containing the original metadata plus columns for each extracted key.
@@ -216,7 +372,7 @@ read_keys_info <- function(file = NULL, keys = NULL, warn = TRUE) {
 #' @importFrom rlang .data
 #'
 #' @export
-extract_data_info <- function(metaData, extractInfo, warn = FALSE) {
+extract_data_info <- function(metaData, info, warn = FALSE) {
   # Input validation
   if (!is.data.frame(metaData)) {
     stop("'metaData' must be a data frame or tibble")
@@ -226,8 +382,8 @@ extract_data_info <- function(metaData, extractInfo, warn = FALSE) {
     stop("'metaData' must contain a column named 'file'")
   }
 
-  if (!is.character(extractInfo) || length(extractInfo) == 0) {
-    stop("'extractInfo' must be a non-empty character vector")
+  if (!is.character(info) || length(info) == 0) {
+    stop("'info' must be a non-empty character vector")
   }
 
   if (!is.logical(warn)) {
@@ -244,7 +400,7 @@ extract_data_info <- function(metaData, extractInfo, warn = FALSE) {
       # Use safely to prevent errors from stopping the entire process
       extracted_result = purrr::map(
         .data$file,
-        ~ safe_read_keys(.x, extractInfo, warn = warn)
+        ~ safe_read_keys(.x, info, warn = warn)
       ),
       # Extract the result component from the safely output
       extracted = purrr::map(.data$extracted_result, "result")

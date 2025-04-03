@@ -2,7 +2,7 @@
 #'
 #' This function reads a metadata JSON file and extracts relevant study information
 #'
-#' @param path A string specifying the directory containing the metadata file.
+#' @param metaData_path A string specifying the directory containing the metadata file.
 #' @return A data frame containing study results.
 #'
 #' @importFrom rlang .data
@@ -79,9 +79,6 @@ read_metaData <- function(metaData_path) {
       attach_folder <- stringr::str_glue("{file_path}study_result_{resultData$id}/comp-result_{compData$id}/files")
       attachment_exists <- dir.exists(attach_folder)
 
-      # Get file size
-      fileSize <- if (file_exists) file.info(data_file)$size / 1024 else NA
-
       # Return as a data frame row
       data.frame(
         batchId = resultData$batchId,
@@ -92,7 +89,7 @@ read_metaData <- function(metaData_path) {
         endTime = endTime,
         duration = round(duration,2),
         file = if (file_exists) data_file else NA,
-        fileSize = round(fileSize,2),
+        fileSize = round(compData$data$size/1024, 2),
         attachments = if (attachment_exists) attach_folder else NA,
         stringsAsFactors = FALSE
       )

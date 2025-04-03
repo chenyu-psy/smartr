@@ -7,7 +7,7 @@
 read_metaData(metaData_path)
 }
 \arguments{
-\item{path}{A string specifying the directory containing the metadata file.}
+\item{metaData_path}{A string specifying the directory containing the metadata file.}
 }
 \value{
 A data frame containing study results.
