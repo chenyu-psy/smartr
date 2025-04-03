@@ -64,10 +64,6 @@ get_JATOS_data <- function(token,
     stop("URL must be a single character string")
   }
 
-  if (missing(studyId) || !is.character(studyId) || length(studyId) != 1) {
-    stop("Study ID must be a single character string")
-  }
-
   if (!is.null(dataPath) && (!is.character(dataPath) || length(dataPath) != 1)) {
     stop("Data path must be NULL or a single character string")
   }
