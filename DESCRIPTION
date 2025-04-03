@@ -1,7 +1,7 @@
 Package: smartr
 Type: Package
 Title: Smart Ways to Run Bayesian Models on JATOS Data
-Version: 0.2.3
+Version: 0.2.4
 Author: c(person("Chenyu", "Li", email = "chenyu.li.hz@gmail.com", role = c("aut", "cre")),
           person("Joscha", "Dutli", email = "joscha.dutli@psychologie.uzh.ch", role = c("aut")))
 Maintainer: The package maintainer <chenyu.li.hz@gmail.com>

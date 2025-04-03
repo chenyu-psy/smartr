@@ -10,7 +10,8 @@ get_JATOS_data(
   studyId,
   batchId,
   dataPath = NULL,
-  extractInfo = NULL
+  extractInfo = NULL,
+  attachments = FALSE
 )
 }
 \arguments{

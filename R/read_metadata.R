@@ -13,15 +13,14 @@
 #'
 #' @export
 #'
-read_metaData <- function(path) {
+read_metaData <- function(metaData_path) {
 
-  # Define the path for the metadata and the data folder
-  if (stringr::str_detect(path, "metadata.json")) {
-    metaData_path <- path
-    data_path <- stringr::str_remove(path, "metadata.json")
+  # Correct the path if it is a directory
+  if (dir.exists(metaData_path)) {
+    metaData_path <- stringr::str_glue("{metaData_path}/metadata.json")
+    data_path <- metaData_path
   } else {
-    metaData_path <- stringr::str_glue("{path}metadata.json")
-    data_path <- path
+    data_path <- str_remove(metaData_path, "metadata.json")
   }
 
   # Check if metadata file exists
@@ -43,7 +42,7 @@ read_metaData <- function(path) {
   }
 
   # Helper function to process each study result
-  process_component <- function(resultData, path) {
+  process_component <- function(resultData, data_path) {
 
     if (is.null(resultData$componentResults)) return(NULL)
 
@@ -69,37 +68,39 @@ read_metaData <- function(path) {
         NA
       }
 
-
+      # Path to save the data file
+      file_path <- stringr::str_glue("{data_path}JATOS_DATA_{resultData$batchId}/")
 
       # Construct file path
-      file_path <- stringr::str_glue("{data_path}/study_result_{resultData$id}/comp-result_{compData$id}/data.txt")
-      file_exists <- file.exists(file_path)
+      data_file <- stringr::str_glue("{file_path}study_result_{resultData$id}/comp-result_{compData$id}/data.txt")
+      file_exists <- file.exists(data_file)
 
       # Attachment
-      attach_path <- stringr::str_glue("{data_path}/study_result_{resultData$id}/comp-result_{compData$id}/files")
-      attachment_exists <- dir.exists(attach_path)
+      attach_folder <- stringr::str_glue("{file_path}study_result_{resultData$id}/comp-result_{compData$id}/files")
+      attachment_exists <- dir.exists(attach_folder)
 
       # Get file size
-      fileSize <- if (file_exists) file.info(file_path)$size / 1024 else NA
+      fileSize <- if (file_exists) file.info(data_file)$size / 1024 else NA
 
       # Return as a data frame row
       data.frame(
+        batchId = resultData$batchId,
         resultId = resultData$id,
         componentId = compData$id,
         studyState = compData$componentState,
         startTime = startTime,
         endTime = endTime,
         duration = round(duration,2),
-        file = if (file_exists) file_path else NA,
+        file = if (file_exists) data_file else NA,
         fileSize = round(fileSize,2),
-        attachments = if (attachment_exists) attach_path else NA,
+        attachments = if (attachment_exists) attach_folder else NA,
         stringsAsFactors = FALSE
       )
     })
   }
 
   # Process all study results
-  info_table <- purrr::map_dfr(studyResults, process_component, path = path)
+  info_table <- purrr::map_dfr(studyResults, process_component, data_path = data_path)
 
   return(info_table)
 }
