@@ -4,12 +4,12 @@
 \alias{extract_data_info}
 \title{Extract Information from Multiple Data Files}
 \usage{
-extract_data_info(metaData, extractInfo, warn = FALSE)
+extract_data_info(metaData, info, warn = FALSE)
 }
 \arguments{
 \item{metaData}{A data frame or tibble containing at least a column named 'file' with paths to data files.}
 
-\item{extractInfo}{A character vector of keys to extract from each data file.}
+\item{info}{A character vector of keys to extract from each data file.}
 
 \item{warn}{Logical. Whether to show warnings during extraction. Default is FALSE.}
 }

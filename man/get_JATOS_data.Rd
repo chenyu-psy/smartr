@@ -8,30 +8,58 @@ get_JATOS_data(
   token,
   url = "https://coglab.xyz/jatos/api/v1/results",
   studyId,
-  batchId,
+  batchId = NULL,
   dataPath = NULL,
-  extractInfo = NULL,
-  attachments = FALSE
+  attachments = FALSE,
+  method = "all"
 )
 }
 \arguments{
-\item{token}{An API token, you can create a new one on JATOS. Details see: https://www.jatos.org/JATOS-API.html#personal-access-tokens}
+\item{token}{A character string containing the API token for authentication. You can create a new token
+on JATOS. See: https://www.jatos.org/JATOS-API.html#personal-access-tokens}
 
-\item{url}{Server address. The default value is the address of our lab server.}
+\item{url}{A character string specifying the server address. The default value is the address of the lab server.}
 
-\item{studyId}{A unique code of study, you can find it on JATOS}
+\item{studyId}{A character string or a numeric containing the unique code of the study, available on JATOS.}
 
-\item{batchId}{A unique code of a batch session in the study.}
+\item{batchId}{A character vector or numeric vector containing one or more unique codes for batch sessions in the study.
+If it is null, the batchId will be retrieved from the metadata.}
 
-\item{dataPath}{A path used to save data. If NUll, data will be saved in working directory.}
+\item{dataPath}{A character string specifying the path used to save data. If NULL, data will be saved
+in a "JATOS_DATA" folder in the working directory.}
 
-\item{extractInfo}{A list of keys to extract from the data file. Default is NULL.}
+\item{attachments}{A logical value indicating whether to download attachments. Default is FALSE.}
+
+\item{method}{A character string specifying the download method. Options are:
+- "all": Download all data for the specified batch IDs (default)
+- "missing": Only download data that is missing or has changed based on file size comparison}
 }
 \value{
-data.frame
+A data frame containing metadata about the downloaded JATOS results.
 }
 \description{
-This function downloads result data from a JATOS server using an API token and specified study ID and batch ID.
-It then unzips and extracts the relevant data, including metadata, file names, and file contents.
-The function returns a data frame with the relevant data.
+This function downloads result data from a JATOS (Just Another Tool for Online Studies) server
+using an API token and specified study ID and batch ID. It then unzips and extracts the relevant data,
+including metadata, file names, and file contents. The function can download all data for specified
+batch IDs or only download missing data based on comparison with local files.
+}
+\examples{
+\dontrun{
+# Download all data for a specific study and batch
+data <- get_JATOS_data(
+  token = "your_api_token",
+  studyId = "your_study_id",
+  batchId = c("batch_id_1", "batch_id_2"),
+  dataPath = "./data/"
+)
+
+# Download only missing data
+missing_data <- get_JATOS_data(
+  token = "your_api_token",
+  studyId = "your_study_id",
+  batchId = c("batch_id_1", "batch_id_2"),
+  method = "missing"
+)
+}
+
 }
