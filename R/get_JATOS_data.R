@@ -26,7 +26,6 @@ get_JATOS_data <- function(token,
                            studyId,
                            batchId,
                            dataPath = NULL,
-                           extractInfo = NULL,
                            attachments = FALSE) {
 
   # Set the default data path
@@ -92,15 +91,8 @@ get_JATOS_data <- function(token,
   # Update the file path to the metadata
   metaData <- read_metaData(metaData_path)
 
-  # Read the key information from the data file
-  if (!is.null(extractInfo)) {
-    info_table <- extract_data_info(metaData, extractInfo)
-  } else {
-    info_table <- metaData
-  }
-
   # Return the combined data frame
-  return(info_table)
+  return(metaData)
 }
 
 
