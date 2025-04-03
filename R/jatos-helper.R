@@ -99,10 +99,27 @@ get_JATOS_data <- function(token,
 
   # Download the metadata from the JATOS server
   metadata_path <- file.path(dataPath, "metadata.json")
-  metadata <- download_metadata(url, studyId, headers, metadata_path)
+  tryCatch({
+    res <- httr::GET(
+      url = stringr::str_glue("{url}/metadata?studyId={studyId}"),
+      httr::add_headers(.headers = headers),
+      httr::write_disk(metadata_path, overwrite = TRUE)
+    )
+
+    if (httr::status_code(res) == 200) {
+      message(stringr::str_glue("Successfully downloaded metadata for study {studyId}."))
+    } else {
+      stop(stringr::str_glue("Failed to download metadata. Status code: {httr::status_code(res)}"))
+    }
+  }, error = function(e) {
+    stop(stringr::str_glue("Error during metadata download: {e$message}"))
+  })
+
+  # Read the metadata from the downloaded JSON file
+  metadata <- read_metaData(metadata_path)
 
   # If batchId is NULL, get unique batch IDs from metadata
-  batch_ids <- ifelse(is.null(batchId), unique(metaData$batchId), batchId)
+  batch_ids <- ifelse(is.null(batchId), unique(metaData$batchId), as.numeric(batchId))
 
   # Download the data based on the specified method
   if (method == "all") {
@@ -119,39 +136,113 @@ get_JATOS_data <- function(token,
   return(updated_metadata)
 }
 
-#' Download metadata from JATOS
-#'
-#' Helper function to download metadata from the JATOS server.
-#'
-#' @param url Base URL for the JATOS API
-#' @param study_id ID of the study
-#' @param headers HTTP headers including authorization
-#' @param metadata_path Path where metadata will be saved
-#'
-#' @return A data frame containing the metadata
-#'
-#' @keywords internal
-download_metadata <- function(url, study_id, headers, metadata_path) {
-  tryCatch({
-    res <- httr::GET(
-      url = stringr::str_glue("{url}/metadata?studyId={study_id}"),
-      httr::add_headers(.headers = headers),
-      httr::write_disk(metadata_path, overwrite = TRUE)
-    )
 
-    if (httr::status_code(res) == 200) {
-      message(stringr::str_glue("Successfully downloaded metadata for study {study_id}."))
-      metadata <- read_metaData(metadata_path)
-      return(metadata)
-    } else {
-      warning(stringr::str_glue("Failed to download metadata. Status code: {httr::status_code(res)}"))
-      return(NULL)
-    }
+#' Read the files information from the metadata file
+#'
+#' This function reads a metadata JSON file and extracts relevant study information
+#'
+#' @param metaData_path A string specifying the directory containing the metadata file.
+#' @return A data frame containing study results.
+#'
+#' @importFrom rlang .data
+#' @importFrom stringr str_glue str_detect
+#' @importFrom jsonlite read_json
+#' @importFrom dplyr bind_rows
+#' @importFrom purrr map_dfr
+#'
+#' @export
+#'
+read_metaData <- function(metaData_path) {
+
+  # Correct the path if it is a directory
+  if (dir.exists(metaData_path)) {
+    metaData_path <- stringr::str_glue("{metaData_path}/metadata.json")
+    data_path <- metaData_path
+  } else {
+    data_path <- str_remove(metaData_path, "metadata.json")
+  }
+
+  # Check if metadata file exists
+  if (!file.exists(metaData_path)) {
+    stop("Metadata file not found: ", metaData_path)
+  }
+
+  # Read metadata file
+  metaData <- tryCatch({
+    jsonlite::read_json(metaData_path)
   }, error = function(e) {
-    warning(stringr::str_glue("Error during metadata download: {e$message}"))
-    return(NULL)
+    stop("Error reading metadata file: ", e$message)
   })
+
+  # Extract study results
+  studyResults <- metaData$data[[1]]$studyResults
+  if (is.null(studyResults)) {
+    stop("No study results found in metadata.")
+  }
+
+  # Helper function to process each study result
+  process_component <- function(resultData, data_path) {
+
+    if (is.null(resultData$componentResults)) return(NULL)
+
+    purrr::map_dfr(resultData$componentResults, function(compData) {
+
+      # Convert timestamps to POSIXct (readable date format)
+      startTime <- if (!is.null(compData$startDate)) {
+        as.POSIXct(compData$startDate / 1000, origin = "1970-01-01", tz = "UTC")
+      } else {
+        NA
+      }
+
+      endTime <- if (!is.null(compData$endDate)) {
+        as.POSIXct(compData$endDate / 1000, origin = "1970-01-01", tz = "UTC")
+      } else {
+        NA
+      }
+
+      # Calculate duration in minutes
+      duration <- if (!is.na(startTime) & !is.na(endTime)) {
+        as.numeric(difftime(endTime, startTime, units = "mins"))
+      } else {
+        NA
+      }
+
+      # Path to save the data file
+      file_path <- stringr::str_glue("{data_path}JATOS_DATA_{resultData$batchId}/")
+
+      # Construct file path
+      data_file <- stringr::str_glue("{file_path}study_result_{resultData$id}/comp-result_{compData$id}/data.txt")
+      file_exists <- file.exists(data_file)
+
+      # Attachment
+      attach_folder <- stringr::str_glue("{file_path}study_result_{resultData$id}/comp-result_{compData$id}/files")
+      attachment_exists <- dir.exists(attach_folder)
+
+      # Return as a data frame row
+      data.frame(
+        batchId = resultData$batchId,
+        resultId = resultData$id,
+        componentId = compData$id,
+        studyState = compData$componentState,
+        startTime = startTime,
+        endTime = endTime,
+        duration = round(duration,2),
+        file = if (file_exists) data_file else NA,
+        fileSize = round(compData$data$size/1024, 2),
+        attachments = if (attachment_exists) attach_folder else NA,
+        stringsAsFactors = FALSE
+      )
+    })
+  }
+
+  # Process all study results
+  info_table <- purrr::map_dfr(studyResults, process_component, data_path = data_path)
+
+  return(info_table)
 }
+
+
+
 
 #' Download all data for specified batch IDs
 #'
@@ -192,7 +283,6 @@ download_all_data <- function(data_url, headers, batch_ids, data_path) {
     })
   }
 }
-
 
 
 #' Download missing data based on metadata comparison
@@ -422,6 +512,96 @@ extract_data_info <- function(metaData, info, warn = FALSE) {
 }
 
 
+#' Read and combine JSON files into a data frame
+#'
+#' @description
+#' This function reads multiple JSON files, combines them into a single data structure,
+#' and returns a unified data frame. It handles file reading, text manipulation, and JSON parsing.
+#' Non-existent files and NA values are automatically removed with warnings.
+#'
+#' @param files A character vector of file paths to JSON files. NA values and non-existent files are automatically removed.
+#'
+#' @return A data frame containing the combined data from all JSON files.
+#'
+#' @examples
+#' \dontrun{
+#' files <- c("data1.json", "data2.json")
+#' combined_data <- read_json_data(files)
+#' }
+#'
+#' @importFrom purrr map_vec
+#' @importFrom stringr str_c
+#' @importFrom jsonlite fromJSON
+#' @importFrom brio read_file
+#'
+#' @export
+read_json_data <- function(files) {
+  # Input validation
+  if (!is.vector(files)) {
+    stop("'files' must be a vector of file paths", call. = FALSE)
+  }
+
+  # Remove NA values from the files vector
+  if (any(is.na(files))) {
+    na_count <- sum(is.na(files))
+    warning(sprintf("Removed %d NA value(s) from the files vector", na_count), call. = FALSE)
+    files <- files[!is.na(files)]
+  }
+
+  # Check if any files remain after removing NAs
+  if (length(files) == 0) {
+    warning("No valid files provided after removing NA values", call. = FALSE)
+    return(data.frame())
+  }
+
+  # Check if all files exist and remove non-existent files
+  files_exist <- file.exists(files)
+  if (!all(files_exist)) {
+    missing_files <- files[!files_exist]
+    warning(
+      sprintf("Removed %d non-existent file(s): %s",
+              length(missing_files),
+              paste(missing_files, collapse = ", ")),
+      call. = FALSE
+    )
+    files <- files[files_exist]
+  }
+
+  # Check if any files remain after removing non-existent files
+  if (length(files) == 0) {
+    warning("No valid files remain after removing non-existent files", call. = FALSE)
+    return(data.frame())
+  }
+
+  # Read all files with progress indicator
+  tryCatch({
+    combined_text <- purrr::map_vec(
+      files,
+      .f = brio::read_file,
+      .progress = TRUE
+    )
+
+    # Combine all text into a single string
+    single_text <- stringr::str_c(combined_text, collapse = "")
+
+    # Modify the text to ensure proper JSON format when combining multiple arrays
+    # This replaces the pattern }][ with },{ to merge adjacent JSON arrays
+    modified_text <- gsub(
+      pattern = "\\}\\]\\s{0,}\\[\\{",
+      replacement = "\\},\\{",
+      x = single_text,
+      perl = TRUE
+    )
+
+    # Parse the modified JSON text into a data frame
+    data <- jsonlite::fromJSON(modified_text)
+
+    return(data)
+  },
+  error = function(e) {
+    stop("Error processing JSON files: ", e$message, call. = FALSE)
+  })
+}
 
 
 
