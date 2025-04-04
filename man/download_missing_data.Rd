@@ -4,18 +4,18 @@
 \alias{download_missing_data}
 \title{Download missing data based on metadata comparison}
 \usage{
-download_missing_data(metadata, batch_ids, data_url, headers, data_path)
+download_missing_data(metadata, data_url, headers, data_path)
 }
 \arguments{
 \item{metadata}{Data frame containing metadata}
-
-\item{batch_ids}{Vector of batch IDs}
 
 \item{data_url}{URL for downloading data}
 
 \item{headers}{HTTP headers including authorization}
 
 \item{data_path}{Path where data will be saved}
+
+\item{batch_ids}{Vector of batch IDs}
 }
 \description{
 Helper function to download only missing or changed data based on file size comparison.
