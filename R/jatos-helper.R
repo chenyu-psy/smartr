@@ -8,9 +8,7 @@
 #' @param token A character string containing the API token for authentication. You can create a new token
 #'        on JATOS. See: https://www.jatos.org/JATOS-API.html#personal-access-tokens
 #' @param url A character string specifying the server address. The default value is the address of the lab server.
-#' @param studyId A character string or a numeric containing the unique code of the study, available on JATOS.
 #' @param batchId A character vector or numeric vector containing one or more unique codes for batch sessions in the study.
-#'                If it is null, the batchId will be retrieved from the metadata.
 #' @param dataPath A character string specifying the path used to save data. If NULL, data will be saved
 #'        in a "JATOS_DATA" folder in the working directory.
 #' @param attachments A logical value indicating whether to download attachments. Default is FALSE.
@@ -49,8 +47,7 @@
 #'
 get_JATOS_data <- function(token,
                            url = "https://coglab.xyz/jatos/api/v1/results",
-                           studyId,
-                           batchId = NULL,
+                           batchId,
                            dataPath = NULL,
                            attachments = FALSE,
                            method = "all") {
@@ -98,16 +95,17 @@ get_JATOS_data <- function(token,
   headers <- c(`Authorization` = stringr::str_glue("Bearer {token}"))
 
   # Download the metadata from the JATOS server
+  multi_query <- paste0("batchId=", batchId, collapse = "&")
   metadata_path <- file.path(dataPath, "metadata.json")
   tryCatch({
     res <- httr::GET(
-      url = stringr::str_glue("{url}/metadata?studyId={studyId}"),
+      url = stringr::str_glue("{url}/metadata?{multi_query}"),
       httr::add_headers(.headers = headers),
       httr::write_disk(metadata_path, overwrite = TRUE)
     )
 
     if (httr::status_code(res) == 200) {
-      message(stringr::str_glue("Successfully downloaded metadata for study {studyId}."))
+      message(stringr::str_glue("Successfully downloaded metadata for batch IDs: {paste(batchId, collapse = ' ')}."))
     } else {
       stop(stringr::str_glue("Failed to download metadata. Status code: {httr::status_code(res)}"))
     }
@@ -118,19 +116,15 @@ get_JATOS_data <- function(token,
   # Read the metadata from the downloaded JSON file
   metadata <- read_metaData(metadata_path)
 
-  # If batchId is NULL, get unique batch IDs from metadata
-  batch_ids <- ifelse(is.null(batchId), unique(metaData$batchId), as.numeric(batchId))
-
   # Download the data based on the specified method
   if (method == "all") {
-    download_all_data(data_url, headers, batch_ids, dataPath)
+    download_all_data(data_url, headers, batchId, dataPath)
   } else if (method == "missing") {
-    download_missing_data(metadata, batch_ids, data_url, headers, dataPath)
+    download_missing_data(metadata, data_url, headers, dataPath)
   }
 
   # Update the metadata after downloading
-  updated_metadata <- read_metaData(metadata_path) %>%
-    filter(.data$batchId %in% batch_ids)
+  updated_metadata <- read_metaData(metadata_path)
 
   # Return the metadata
   return(updated_metadata)
@@ -255,6 +249,7 @@ read_metaData <- function(metaData_path) {
 #'
 #' @keywords internal
 download_all_data <- function(data_url, headers, batch_ids, data_path) {
+
   for (batch in batch_ids) {
     # Create the file paths for the zipped and unzipped data
     file_zip <- file.path(tempdir(), stringr::str_glue("JATOS_DATA_{batch}.jrzip"))
@@ -296,21 +291,32 @@ download_all_data <- function(data_url, headers, batch_ids, data_path) {
 #' @param data_path Path where data will be saved
 #'
 #' @keywords internal
-download_missing_data <- function(metadata, batch_ids, data_url, headers, data_path) {
+download_missing_data <- function(metadata, data_url, headers, data_path) {
+
   # Filter the metadata to obtain the participants whose data has not been downloaded
   filtered_metadata <- metadata %>%
-    dplyr::filter(.data$batchId %in% batch_ids) %>%
     dplyr::mutate(localSize = ifelse(is.na(.data$file), 0, round(file.info(.data$file)$size / 1024, 2))) %>%
     dplyr::filter(.data$fileSize > 0.5, .data$fileSize > .data$localSize)
 
-  # Download data for each participant
-  for (i in seq_len(nrow(filtered_metadata))) {
+  # Check if any data needs to be downloaded
+  if (nrow(filtered_metadata) == 0) {
+    message("There is no data needing to be downloaded.")
+    return(invisible())
+  }
+
+  # Get unique batch IDs
+  batch_ids <- unique(filtered_metadata$batchId)
+
+  # Download missing data
+  for (batch_id in batch_ids) {
+
     # Extract batch ID and result ID
-    batch_id <- filtered_metadata$batchId[i]
-    result_id <- filtered_metadata$resultId[i]
+    result_ids <- filtered_metadata %>%
+      dplyr::filter(.data$batchId == batch_id) %>%
+      dplyr::pull(.data$resultId)
 
     # Create the file paths for the zipped and unzipped data
-    file_zip <- file.path(tempdir(), stringr::str_glue("JATOS_DATA_{result_id}.jrzip"))
+    file_zip <- file.path(tempdir(), stringr::str_glue("JATOS_DATA_{batch_id}.jrzip"))
     file_unzip <- file.path(data_path, stringr::str_glue("JATOS_DATA_{batch_id}"))
 
     # Create the directory if it doesn't exist
@@ -318,22 +324,34 @@ download_missing_data <- function(metadata, batch_ids, data_url, headers, data_p
       dir.create(file_unzip, recursive = TRUE)
     }
 
+    # Create query string for result IDs
+    result_id_query <- paste0("studyResultId=", result_ids, collapse = "&")
+
     tryCatch({
       res <- httr::GET(
-        url = stringr::str_glue("{data_url}?studyResultId={result_id}"),
+        url = stringr::str_glue("{data_url}?{result_id_query}"),
         httr::add_headers(.headers = headers),
         httr::write_disk(file_zip, overwrite = TRUE)
       )
 
       if (httr::status_code(res) == 200) {
+        message(str_glue("Successfully downloaded missing data for batch {batch_id}."))
         filelist <- utils::unzip(file_zip, exdir = file_unzip, overwrite = TRUE)
+      } else if (httr::status_code(res) == 414) {
+        # Using batchId rather than resultId to download data
+        res <- httr::GET(
+          url = stringr::str_glue("{data_url}?batchId={batch_id}"),
+          httr::add_headers(.headers = headers),
+          httr::write_disk(file_zip, overwrite = TRUE)
+        )
       } else {
-        warning(stringr::str_glue("Failed to download data for result {result_id}. Status code: {httr::status_code(res)}"))
+        warning(stringr::str_glue("Failed to download data for batch {batch_id}. Status code: {httr::status_code(res)}"))
       }
     }, error = function(e) {
-      warning(stringr::str_glue("Error during download for result {result_id}: {e$message}"))
+      warning(stringr::str_glue("Error during download for batch {batch_id}: {e$message}"))
     })
   }
+
 }
 
 

@@ -7,8 +7,7 @@
 get_JATOS_data(
   token,
   url = "https://coglab.xyz/jatos/api/v1/results",
-  studyId,
-  batchId = NULL,
+  batchId,
   dataPath = NULL,
   attachments = FALSE,
   method = "all"
@@ -20,10 +19,7 @@ on JATOS. See: https://www.jatos.org/JATOS-API.html#personal-access-tokens}
 
 \item{url}{A character string specifying the server address. The default value is the address of the lab server.}
 
-\item{studyId}{A character string or a numeric containing the unique code of the study, available on JATOS.}
-
-\item{batchId}{A character vector or numeric vector containing one or more unique codes for batch sessions in the study.
-If it is null, the batchId will be retrieved from the metadata.}
+\item{batchId}{A character vector or numeric vector containing one or more unique codes for batch sessions in the study.}
 
 \item{dataPath}{A character string specifying the path used to save data. If NULL, data will be saved
 in a "JATOS_DATA" folder in the working directory.}
