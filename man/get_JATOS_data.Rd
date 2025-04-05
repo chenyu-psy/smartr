@@ -40,20 +40,12 @@ batch IDs or only download missing data based on comparison with local files.
 }
 \examples{
 \dontrun{
-# Download all data for a specific study and batch
+# Download data for specified batches
 data <- get_JATOS_data(
   token = "your_api_token",
-  studyId = "your_study_id",
   batchId = c("batch_id_1", "batch_id_2"),
-  dataPath = "./data/"
-)
-
-# Download only missing data
-missing_data <- get_JATOS_data(
-  token = "your_api_token",
-  studyId = "your_study_id",
-  batchId = c("batch_id_1", "batch_id_2"),
-  method = "missing"
+  dataPath = "./data/",
+  attachments = FALSE
 )
 }
 
