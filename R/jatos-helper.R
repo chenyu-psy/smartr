@@ -49,8 +49,7 @@ get_JATOS_data <- function(token,
                            url = "https://coglab.xyz/jatos/api/v1/results",
                            batchId,
                            dataPath = NULL,
-                           attachments = FALSE,
-                           method = "all") {
+                           attachments = FALSE) {
 
   # Input validation
   if (missing(token) || !is.character(token) || length(token) != 1) {
@@ -116,12 +115,8 @@ get_JATOS_data <- function(token,
   # Read the metadata from the downloaded JSON file
   metadata <- read_metaData(metadata_path)
 
-  # Download the data based on the specified method
-  if (method == "all") {
-    download_all_data(data_url, headers, batchId, dataPath)
-  } else if (method == "missing") {
-    download_missing_data(metadata, data_url, headers, dataPath)
-  }
+  # Download the data
+  download_missing_data(metadata, data_url, headers, dataPath)
 
   # Update the metadata after downloading
   updated_metadata <- read_metaData(metadata_path)
@@ -237,68 +232,29 @@ read_metaData <- function(metaData_path) {
 
 
 
-
-#' Download all data for specified batch IDs
-#'
-#' Helper function to download all data for the specified batch IDs.
-#'
-#' @param data_url URL for downloading data
-#' @param headers HTTP headers including authorization
-#' @param batch_ids Vector of batch IDs
-#' @param data_path Path where data will be saved
-#'
-#' @keywords internal
-download_all_data <- function(data_url, headers, batch_ids, data_path) {
-
-  for (batch in batch_ids) {
-    # Create the file paths for the zipped and unzipped data
-    file_zip <- file.path(tempdir(), stringr::str_glue("JATOS_DATA_{batch}.jrzip"))
-    file_unzip <- file.path(data_path, stringr::str_glue("JATOS_DATA_{batch}"))
-
-    # Create the directory if it doesn't exist
-    if (!dir.exists(file_unzip)) {
-      dir.create(file_unzip, recursive = TRUE)
-    }
-
-    tryCatch({
-      res <- httr::GET(
-        url = stringr::str_glue("{data_url}?batchId={batch}"),
-        httr::add_headers(.headers = headers),
-        httr::write_disk(file_zip, overwrite = TRUE)
-      )
-
-      if (httr::status_code(res) == 200) {
-        message(stringr::str_glue("Successfully downloaded data for batch {batch}."))
-        filelist <- utils::unzip(file_zip, exdir = file_unzip, overwrite = TRUE)
-      } else {
-        warning(stringr::str_glue("Failed to download data for batch {batch}. Status code: {httr::status_code(res)}"))
-      }
-    }, error = function(e) {
-      warning(stringr::str_glue("Error during download for batch {batch}: {e$message}"))
-    })
-  }
-}
-
-
 #' Download missing data based on metadata comparison
 #'
 #' Helper function to download only missing or changed data based on file size comparison.
 #'
 #' @param metadata Data frame containing metadata
-#' @param batch_ids Vector of batch IDs
 #' @param data_url URL for downloading data
 #' @param headers HTTP headers including authorization
 #' @param data_path Path where data will be saved
 #'
 #' @keywords internal
 download_missing_data <- function(metadata, data_url, headers, data_path) {
-
-  # Filter the metadata to obtain the participants whose data has not been downloaded
+  # Filter metadata to find data that needs downloading
   filtered_metadata <- metadata %>%
-    dplyr::mutate(localSize = ifelse(is.na(.data$file), 0, round(file.info(.data$file)$size / 1024, 2))) %>%
-    dplyr::filter(.data$fileSize > 0.5, .data$fileSize > .data$localSize)
+    # Use file size to check if the files need to be updated
+    dplyr::mutate(
+      local_size = ifelse(is.na(.data$file), 0, round(file.info(.data$file)$size / 1024, 2))
+    ) %>%
+    dplyr::filter(
+      .data$fileSize > 0.5,
+      .data$fileSize > .data$local_size
+    )
 
-  # Check if any data needs to be downloaded
+  # Check if there are any files to download
   if (nrow(filtered_metadata) == 0) {
     message("There is no data needing to be downloaded.")
     return(invisible())
@@ -307,52 +263,83 @@ download_missing_data <- function(metadata, data_url, headers, data_path) {
   # Get unique batch IDs
   batch_ids <- unique(filtered_metadata$batchId)
 
-  # Download missing data
+  # Process each batch
   for (batch_id in batch_ids) {
-
-    # Extract batch ID and result ID
+    # Get result IDs for current batch
     result_ids <- filtered_metadata %>%
       dplyr::filter(.data$batchId == batch_id) %>%
       dplyr::pull(.data$resultId)
 
-    # Create the file paths for the zipped and unzipped data
-    file_zip <- file.path(tempdir(), stringr::str_glue("JATOS_DATA_{batch_id}.jrzip"))
-    file_unzip <- file.path(data_path, stringr::str_glue("JATOS_DATA_{batch_id}"))
+    # Define file paths
+    zip_file_path <- file.path(tempdir(), stringr::str_glue("JATOS_DATA_{batch_id}.jrzip"))
+    unzip_dir_path <- file.path(data_path, stringr::str_glue("JATOS_DATA_{batch_id}"))
 
-    # Create the directory if it doesn't exist
-    if (!dir.exists(file_unzip)) {
-      dir.create(file_unzip, recursive = TRUE)
+    # Create directory if it doesn't exist
+    if (!dir.exists(unzip_dir_path)) {
+      dir.create(unzip_dir_path, recursive = TRUE)
     }
 
-    # Create query string for result IDs
-    result_id_query <- paste0("studyResultId=", result_ids, collapse = "&")
+    # Determine download method based on number of result IDs
+    use_result_ids_method <- length(result_ids) <= 20
+    download_successful <- FALSE
 
-    tryCatch({
-      res <- httr::GET(
-        url = stringr::str_glue("{data_url}?{result_id_query}"),
-        httr::add_headers(.headers = headers),
-        httr::write_disk(file_zip, overwrite = TRUE)
-      )
+    # Try downloading using result IDs if appropriate
+    if (use_result_ids_method) {
+      result_id_query <- paste0("studyResultId=", result_ids, collapse = "&")
 
-      if (httr::status_code(res) == 200) {
-        message(str_glue("Successfully downloaded missing data for batch {batch_id}."))
-        filelist <- utils::unzip(file_zip, exdir = file_unzip, overwrite = TRUE)
-      } else if (httr::status_code(res) == 414) {
-        # Using batchId rather than resultId to download data
-        res <- httr::GET(
+      tryCatch({
+        response <- httr::GET(
+          url = stringr::str_glue("{data_url}?{result_id_query}"),
+          httr::add_headers(.headers = headers),
+          httr::write_disk(zip_file_path, overwrite = TRUE)
+        )
+
+        if (httr::status_code(response) == 200) {
+          message(stringr::str_glue("Successfully downloaded missing data for batch {batch_id} using result IDs."))
+          utils::unzip(zip_file_path, exdir = unzip_dir_path, overwrite = TRUE)
+          download_successful <- TRUE
+        } else if (httr::status_code(response) == 414) {
+          message(stringr::str_glue("URI too long for batch {batch_id}. Retrying with batch ID..."))
+        } else {
+          warning(stringr::str_glue(
+            "Failed to download data using result IDs for batch {batch_id}. ",
+            "Status code: {httr::status_code(response)}"
+          ))
+        }
+      }, error = function(e) {
+        warning(stringr::str_glue(
+          "Error during download using result IDs for batch {batch_id}: {e$message}"
+        ))
+      })
+    }
+
+    # Fallback to batch ID method if result IDs method failed or wasn't used
+    if (!download_successful) {
+      tryCatch({
+        response <- httr::GET(
           url = stringr::str_glue("{data_url}?batchId={batch_id}"),
           httr::add_headers(.headers = headers),
-          httr::write_disk(file_zip, overwrite = TRUE)
+          httr::write_disk(zip_file_path, overwrite = TRUE)
         )
-      } else {
-        warning(stringr::str_glue("Failed to download data for batch {batch_id}. Status code: {httr::status_code(res)}"))
-      }
-    }, error = function(e) {
-      warning(stringr::str_glue("Error during download for batch {batch_id}: {e$message}"))
-    })
-  }
 
+        if (httr::status_code(response) == 200) {
+          message(stringr::str_glue("Successfully downloaded missing data for batch {batch_id} using batch ID."))
+          utils::unzip(zip_file_path, exdir = unzip_dir_path, overwrite = TRUE)
+        } else {
+          warning(stringr::str_glue(
+            "Failed to download data for batch {batch_id} using batch ID. ",
+            "Status code: {httr::status_code(response)}"
+          ))
+        }
+      }, error = function(e) {
+        warning(stringr::str_glue(
+          "Error during download for batch {batch_id} using batch ID: {e$message}"
+        ))
+      })
+    }
+  }
 }
+
 
 
 

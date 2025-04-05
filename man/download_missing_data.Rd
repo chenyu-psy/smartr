@@ -14,8 +14,6 @@ download_missing_data(metadata, data_url, headers, data_path)
 \item{headers}{HTTP headers including authorization}
 
 \item{data_path}{Path where data will be saved}
-
-\item{batch_ids}{Vector of batch IDs}
 }
 \description{
 Helper function to download only missing or changed data based on file size comparison.
