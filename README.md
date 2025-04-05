@@ -1,90 +1,165 @@
 # Overview
-This package involves a series of functions that can make your R coding much easier.
 
-# job relative fucntions
+This package primarily enhances the personal programming experience when conducting Bayesian Framework analyses in R. While most functions may not be general enough, they can be useful in specific situations.
 
-The job relative functions are designed to help you run your code in background either sequentially or simultaneously. They relies on the [job package](https://github.com/lindeloev/job) that transfer your code to background. The problem for the job package is that it runs all the jobs simultaneously, which may cause the machine to be busy or overloaded. The `smart_runFun` function is designed to solve this problem. It creates a temporary job log monitoring the status of the machine. All the codes in jobs will be executed sequentially according to the order and priority.
+# Job Manager
 
-## Functions and examples
+The Job Manager provides a robust system for efficient background code execution in R. Built on the job package, it adds intelligent job scheduling, monitoring, and resource management to prevent system overload.
 
-The `smart_run` function is similar to the `job` function but with additional arguments. You can write your script as usual. Then wrap parts of it using `smart_run({<your code>})` to run that chunk as a job. However, the `smart_run` function doesn't support passing environment variables to the job. You need to make sure that all the variables are defined in the job chunk.
+## Core Functions
 
-``` R
+### 1. Running Background Jobs
+The `smart_runFun` function executes any R function in the background with full control over arguments, priorities, and naming:
 
-smart_run(
-  {
-    # your code here
-    print("Hello world")
-    Sys.sleep(10)
-  },
-  name = "hello world"
-)
-
-```
-
-Additionally, an alternative is the `smart_runFun` function. It executes a function in the job, and arguments can be passed to the job through the function.
-
-``` R
-
+``` r
 smart_runFun(
-  fun = brm,
-  args = list(
+  fun = brm,                         # Any R function
+  args = list(                       # Arguments passed to the function
     formula = mpg ~ wt + qsec,
     data = mtcars
   ),
-  name = "brm_model"
+  name = "brm_model",                # Custom name for tracking
+  priority = 1,                      # Optional: priority level (higher runs first)
+)
+```
+
+### 2. Job Management
+
+The package provides functions to manage computational jobs.
+
+#### Initialize Job Log
+Create and configure the job tracking system:
+```r
+init_job()  # Creates job log in temp directory
+init_job("./my_jobs/")  # Specify custom directory
+```
+
+#### View Job Status
+Track progress of all background processes:
+```r
+view_job()  # View all jobs
+view_job(1)  # View job by index
+view_job("model_fit")  # View job by name
+```
+
+#### Remove Jobs
+Remove completed or unwanted jobs:
+```r
+remove_job(1)  # Remove by index
+remove_job("model_fit")  # Remove by name
+```
+
+## Advanced Functions
+
+This package also includes advanced functions for model comparison
+
+### 1. Parallel Model Comparison
+
+The `parallel_model_comparison` function enables efficient comparison of multiple statistical models using parallel execution. It automates model fitting, bridge sampling, and Bayes Factor calculations across parameter combinations.
+
+#### Key Features:
+- Parallel execution of model fitting and bridge sampling
+- Automatic model comparison table generation
+- Support for both `brms` and `bmm` models
+- Built-in checks for existing results to avoid redundant computation
+
+#### Basic Usage:
+```r
+
+list_for_model_comparison <- list(
+  par_a = c("a1", "a2"),
+  par_b = c("b1", "b2")
+)
+
+parallel_model_comparison(
+  fun = brm,  # Model fitting function
+  pars = list_for_model_comparison,
+  form_fun = gen_formula,
+  args = list(  # Common arguments for all models
+    data = my_data,
+    chains = 4
+  ),
+  model_name = "Model",
+  model_path = "./models",  # Directory to store fitted models
+  sample_path = "./samples"  # Directory to store bridge samples
 )
 
 ```
 
-## job log management
 
-There also are a few functions to help you manage the job log:
 
-1. `init_job` : Initialize a job log or clean the job log.
-2. `view_job` : view the job log
-3. `remove_job` : Remove the specific jobs from the job log
+### 2. Sequential Model Comparison
 
 # Data processing
 
 ## JATOS relative functions
 
-The JATOS relative functions are designed to help you process the data from JATOS. The data from JATOS is usually in JSON format. 
+The JATOS relative functions are designed to help you process the data from JATOS. The data from JATOS is usually in JSON format.
 
-### Download data from JATOS
+### 1. Download Data from JATOS
+The `get_JATOS_data` function downloads result data and returns metadata about the downloaded files. Data is saved in either:
+- The specified `dataPath` directory, or 
+- A "JATOS_DATA" subfolder if no path is specified
 
-The `get_JATOS_data` function is designed to download the data from JATOS. You can specify the study ID and the batch ID to download the data. The data will be saved in the specified folder.
-
-``` R
-Table_file_path = get_JATOS_data(
-  token = "the token of your personal account",, 
-  url = "the url of your server", 
-  studyId = 00, # study ID 
-  batchId = 00 , # batch ID 
-  dataPath = NULL # the path to save the data
+```r
+# Download data and get metadata
+metadata <- get_JATOS_data(
+  token = "your_api_token",
+  batchId = c("batch1", "batch2"),  # One or more batch IDs
+  dataPath = "./downloaded_data/",  # Optional custom path
+  attachments = FALSE               # Set TRUE to download attachments
 )
 
+# View metadata structure
+head(metadata)
 ```
 
-### Read json data
-
-The `read_json_data` function is designed to read the data from the JSON file. The data will be saved in a data frame.
-
-``` R
-
-data = read_json_data(c(file1, file2))
-
+### 2. Read Metadata
+When you use the `get_JATOS_data` function to download data from JATOS, the metadata is also saved. The next time, you can use the `read_metaData` function to access it.
+```r
+metadata <- read_metaData("./downloaded_data/metadata.json")
 ```
+
+### 3. Enrich and Filter Metadata
+Add information extracted from data files and filter results:
+
+```r
+# Extract additional info from data files (e.g., participant IDs)
+metadata <- extract_data_info(
+  metadata,
+  info = c("participant_id"),  # Keys to extract
+  warn = FALSE
+)
+
+# Filter metadata (e.g., only completed components)
+completed_data <- metadata %>% 
+  filter(studyState == "FINISHED")
+```
+
+### 4. Read and Analyze Data
+Read all JSON data files from filtered results:
+
+```r
+# Read all data files (NA paths automatically excluded)
+study_data <- read_json_data(completed_data$file)
+
+# Analyze the combined data
+summary(study_data)
+```
+
+### Notes:
+- API tokens can be created in JATOS at: https://www.jatos.org/JATOS-API.html#personal-access-tokens
+- Data is saved in organized subfolders by batch ID and result ID
+- The metadata contains timestamps, durations, and file paths for all results
+
 
 ## Aggregation relative functions
 
 The aggregation relative functions are designed to help you aggregate the data.
 
-1. `agg_plot`: Summarize the mean, standard deviation, and 95% confidence interval of the data for plotting.
-2. `agg_multinomial`: Aggregate the data for models using a multinomial data distribution.
-
+1.  `agg_plot`: Summarize the mean, standard deviation, and 95% confidence interval of the data for plotting.
+2.  `agg_multinomial`: Aggregate the data for models using a multinomial data distribution.
 
 ## Model relative functions
 
-1. `mutate_form`: Add new columns to the data frame according to the provided formula.
-
+1.  `mutate_form`: Add new columns to the data frame according to the provided formula.
