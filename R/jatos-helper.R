@@ -60,10 +60,6 @@ get_JATOS_data <- function(token,
     stop("Attachments must be a logical value (TRUE or FALSE)")
   }
 
-  if (!method %in% c("all", "missing")) {
-    stop('Method must be either "all" or "missing"')
-  }
-
   # Set the default data path and ensure it exists
   if (is.null(dataPath)) {
     dataPath <- "./JATOS_DATA/"
