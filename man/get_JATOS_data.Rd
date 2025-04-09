@@ -24,10 +24,6 @@ on JATOS. See: https://www.jatos.org/JATOS-API.html#personal-access-tokens}
 in a "JATOS_DATA" folder in the working directory.}
 
 \item{attachments}{A logical value indicating whether to download attachments. Default is FALSE.}
-
-\item{method}{A character string specifying the download method. Options are:
-- "all": Download all data for the specified batch IDs (default)
-- "missing": Only download data that is missing or has changed based on file size comparison}
 }
 \value{
 A data frame containing metadata about the downloaded JATOS results.
