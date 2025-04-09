@@ -12,9 +12,6 @@
 #' @param dataPath A character string specifying the path used to save data. If NULL, data will be saved
 #'        in a "JATOS_DATA" folder in the working directory.
 #' @param attachments A logical value indicating whether to download attachments. Default is FALSE.
-#' @param method A character string specifying the download method. Options are:
-#'        - "all": Download all data for the specified batch IDs (default)
-#'        - "missing": Only download data that is missing or has changed based on file size comparison
 #'
 #' @return A data frame containing metadata about the downloaded JATOS results.
 #'
