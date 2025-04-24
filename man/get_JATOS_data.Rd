@@ -30,7 +30,7 @@ A data frame containing metadata about the downloaded JATOS results.
 }
 \description{
 This function downloads result data from a JATOS (Just Another Tool for Online Studies) server
-using an API token and specified study ID and batch ID. It then unzips and extracts the relevant data,
+using an API token and specified batch ID. It then unzips and extracts the relevant data,
 including metadata, file names, and file contents. The function can download all data for specified
 batch IDs or only download missing data based on comparison with local files.
 }

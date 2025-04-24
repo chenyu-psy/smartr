@@ -1,7 +1,7 @@
 #' Download data from JATOS
 #'
 #' This function downloads result data from a JATOS (Just Another Tool for Online Studies) server
-#' using an API token and specified study ID and batch ID. It then unzips and extracts the relevant data,
+#' using an API token and specified batch ID. It then unzips and extracts the relevant data,
 #' including metadata, file names, and file contents. The function can download all data for specified
 #' batch IDs or only download missing data based on comparison with local files.
 #'
@@ -593,3 +593,122 @@ read_json_data <- function(files) {
     stop("Error processing JSON files: ", e$message, call. = FALSE)
   })
 }
+
+
+#' Retrieve study information from a JATOS server
+#'
+#' This function retrieves study information from a JATOS (Just Another Tool for Online Studies) server
+#' using the JATOS API. It can return either complete study information or a simplified version.
+#'
+#' @param token Character string. Authentication token for the JATOS API (required).
+#' @param url Character string. Base URL of the JATOS API. Default is "https://coglab.xyz/jatos/api/v1/studies".
+#' @param export Character string. Format of the returned data: either "simple" (default) or "all".
+#'   "simple" returns a tidied data frame with key study information.
+#'   "all" returns the complete raw study information.
+#'
+#' @return A data frame containing study information. The structure depends on the `export` parameter.
+#'
+#' @examples
+#' \dontrun{
+#' # Get simplified study information
+#' study_info <- get_jatos_studyInfo("your-auth-token")
+#'
+#' # Get complete study information
+#' full_study_info <- get_jatos_studyInfo("your-auth-token", export = "all")
+#' }
+#'
+#' @importFrom httr GET add_headers write_disk status_code
+#' @importFrom stringr str_glue str_ends
+#' @importFrom dplyr select rename
+#' @importFrom tidyr unnest_wider unnest_longer
+#'
+#' @export
+get_jatos_studyInfo <- function(token,
+                                 url = "https://coglab.xyz/jatos/api/v1/studies",
+                                 export = c("simple", "all")) {
+  # Input validation
+  if (missing(token) || !is.character(token) || length(token) != 1) {
+    stop("Token must be a single character string")
+  }
+
+  if (!is.character(url) || length(url) != 1) {
+    stop("URL must be a single character string")
+  }
+
+  # Ensure URL ends with "studies"
+  if (!stringr::str_ends(url, "studies")) {
+    stop("URL must end with 'studies'. Please check the API endpoint.")
+  }
+
+  # Match export argument
+  export <- match.arg(export)
+
+  # Create temporary file path for downloaded data
+  data_path <- file.path(tempdir(), "studyinfo.json")
+
+  # Create the authorization header with the specified token
+  headers <- c(`Authorization` = stringr::str_glue("Bearer {token}"))
+
+  # Construct the full API endpoint URL with query parameters
+  full_url <- stringr::str_glue(
+    "{url}/properties?withComponentProperties=true&withBatchProperties=true"
+  )
+
+  # Download the metadata from the JATOS server
+  tryCatch({
+    res <- httr::GET(
+      url = full_url,
+      httr::add_headers(.headers = headers),
+      httr::write_disk(data_path, overwrite = TRUE)
+    )
+
+    # Check HTTP status code
+    status_code <- httr::status_code(res)
+    if (status_code == 200) {
+      message("Successfully downloaded study information.")
+    } else if (status_code == 401) {
+      stop("Authentication failed. Please check your token.")
+    } else if (status_code == 404) {
+      stop("API endpoint not found. Please check the URL.")
+    } else {
+      stop(stringr::str_glue("Failed to download study information. Status code: {status_code}"))
+    }
+  }, error = function(e) {
+    stop(stringr::str_glue("Error during study information download: {e$message}"))
+  })
+
+  # Read the metadata from the downloaded JSON file
+  study_info <- tryCatch({
+    read_json_data(data_path)$data
+  }, error = function(e) {
+    stop(stringr::str_glue("Error parsing JSON data: {e$message}"))
+  })
+
+  # Return data based on export format
+  if (export == "all") {
+    return(study_info)
+  } else {
+    # Process and simplify the study information
+    tryCatch({
+      simple_study_info <- study_info %>%
+        dplyr::select(-batchList, -jsonData, -componentList, -members) %>%
+        tidyr::unnest_wider(c(components, batches), names_sep = "_") %>%
+        dplyr::rename(
+          studyId = id,
+          studyName = title,
+          componentId = components_id,
+          componentName = components_title,
+          batchId = batches_id,
+          batchName = batches_title
+        ) %>%
+        dplyr::select(studyId, studyName, componentId, componentName, batchId, batchName) %>%
+        tidyr::unnest_longer(c(componentId, componentName)) %>%
+        tidyr::unnest_longer(c(batchId, batchName))
+
+      return(simple_study_info)
+    }, error = function(e) {
+      stop(stringr::str_glue("Error processing study information: {e$message}"))
+    })
+  }
+}
+
