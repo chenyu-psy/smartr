@@ -20,7 +20,7 @@ get_jatos_studyInfo(
 "all" returns the complete raw study information.}
 }
 \value{
-A data frame containing study information. The structure depends on the `export` parameter.
+A data frame containing study information. The structure depends on the \code{export} parameter.
 }
 \description{
 This function retrieves study information from a JATOS (Just Another Tool for Online Studies) server
