@@ -4,7 +4,7 @@
 \alias{bf_pairs}
 \title{Pairwise Bayesian Comparisons from a brms Model}
 \usage{
-bf_pairs(model, prior = NULL, spec, cont_values = NULL)
+bf_pairs(model, prior = NULL, specs, cont_values = NULL)
 }
 \arguments{
 \item{model}{A fitted \code{brmsfit} object (posterior model).}
@@ -12,8 +12,9 @@ bf_pairs(model, prior = NULL, spec, cont_values = NULL)
 \item{prior}{Optional fitted \code{brmsfit} object representing the prior-only model.
 If provided, it is used for Bayes Factor computation.}
 
-\item{spec}{A formula specifying the marginal means to compute
-(see \code{\link[emmeans]{emmeans}}).}
+\item{specs}{A formula or list of formulas specifying the marginal means to compute
+(see \code{\link[emmeans]{emmeans}}). Multiple formulas can be provided using
+\code{c(~ formula1, ~ formula2)}.}
 
 \item{cont_values}{Optional named list specifying values of continuous variables at which
 to estimate marginal means (e.g., \code{list(age = c(25, 40))}).}
@@ -27,6 +28,9 @@ A list with class "pairwise_comparison" containing:
 \item{pairwise_prior}{Pairwise comparisons for the prior model, if provided.}
 \item{bayesfactor}{Bayes Factors for each pairwise comparison.}
 }
+
+If multiple formulas are provided in \code{specs}, returns a list with class
+"pairwise_comparison_list" containing the results for each formula.
 }
 \description{
 Computes estimated marginal means, pairwise comparisons, and Bayes Factors for a fitted
@@ -34,14 +38,17 @@ Computes estimated marginal means, pairwise comparisons, and Bayes Factors for a
 comparisons while handling continuous predictors appropriately.
 }
 \details{
-Continuous variables are automatically detected as numeric or integer columns in the model's data
-(excluding factors, logicals, and the response variable). By default, the function uses the mean
-value of each continuous variable when computing marginal means.
+Continuous variables are automatically detected from the model formula and identified as numeric
+or integer columns in the model's data. By default, the function uses the mean value of each
+continuous variable when computing marginal means.
 
 If \code{cont_values} is provided, its values override the default (mean) for those variables.
 
 If \code{prior} is provided, it is processed in the same way as \code{model} and used for
 Bayes Factor computation via \code{bayestestR::bayesfactor_parameters}.
+
+When \code{specs} is a list of formulas, the function processes each formula separately
+and returns a list of results.
 }
 \examples{
 \dontrun{
@@ -64,17 +71,24 @@ fit <- brm(DV ~ IV1 * IV2 * ContVar + (1|subject),
 fit_prior <- brm(DV ~ IV1 * IV2 * ContVar + (1|subject),
                  data = data, sample_prior = "only", iter = 1000, chains = 2)
 
-# Run pairwise comparisons
-res <- bf_pairs(
+# Run pairwise comparisons with a single spec
+res1 <- bf_pairs(
   model = fit,
   prior = fit_prior,
-  spec = ~ IV1 | IV2
+  specs = ~ IV1 | IV2
+)
+
+# Run pairwise comparisons with multiple specs
+res2 <- bf_pairs(
+  model = fit,
+  prior = fit_prior,
+  specs = c(~ IV1 | IV2, ~ IV2 | IV1)
 )
 
 # View results
-print(res$emmeans)
-print(res$pairwise)
-print(res$bayesfactor)
+print(res1$emmeans)
+print(res1$pairwise)
+print(res1$bayesfactor)
 }
 
 }

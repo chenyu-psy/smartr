@@ -95,6 +95,10 @@ smart_runFun <- function(
   # Run job in background
   job::job({
 
+    # import functions
+    update_job <- getFromNamespace("update_job", "smartr")
+    append_job <- getFromNamespace("append_job", "smartr")
+
     message("\nThe task is now in the waiting list ...")
 
     while (TRUE) {
