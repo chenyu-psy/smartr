@@ -2,7 +2,7 @@
 "_PACKAGE"
 
 ## usethis namespace: start
-#' @importFrom magrittr %>%
+#' @importFrom dplyr %>%
 #' @importFrom rlang :=
 ## usethis namespace: end
 NULL

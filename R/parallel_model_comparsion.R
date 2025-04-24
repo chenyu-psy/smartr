@@ -20,7 +20,6 @@
 #' @return A data frame containing the model comparison table.
 #'
 #' @import dplyr
-#' @import fs
 #' @importFrom purrr list_assign
 #' @export
 parallel_model_comparison <- function(
@@ -68,8 +67,8 @@ parallel_model_comparison <- function(
       logBF = NA,
       reliability = NA,
       best_model = NA,
-      model_file = path(model_path, paste0(model_name, ".rds")),
-      sample_file = path(sample_path, paste0(sample_name, ".rds")),
+      model_file = file.path(model_path, paste0(model_name, ".rds")),
+      sample_file = file.path(sample_path, paste0(sample_name, ".rds")),
       model_ck = as.integer(file.exists(model_file)),
       sample_ck = as.integer(file.exists(sample_file))
     ) %>%

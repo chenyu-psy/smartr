@@ -11,7 +11,6 @@
 #' @return A data frame containing log marginal likelihoods for different models.
 #'
 #' @importFrom dplyr mutate select across everything
-#' @importFrom fs path
 #' @importFrom stats median
 #' @export
 compare_logml <- function(pars, sample_path, sample_prefix) {
@@ -27,7 +26,7 @@ compare_logml <- function(pars, sample_path, sample_prefix) {
       part_name = apply(across(everything()), 1, function(row)
         paste(names(row), row, sep = "", collapse = "_")
       ),
-      sample_file = path(sample_path, paste0(sample_prefix, "_", .data$part_name, ".rds")),
+      sample_file = file.path(sample_path, paste0(sample_prefix, "_", .data$part_name, ".rds")),
       logml = NA_real_
     )
 

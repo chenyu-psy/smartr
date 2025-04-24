@@ -522,7 +522,6 @@ extract_data_info <- function(metaData, info, warn = FALSE) {
 #' @importFrom purrr map_vec
 #' @importFrom stringr str_c
 #' @importFrom jsonlite fromJSON
-#' @importFrom brio read_file
 #'
 #' @export
 read_json_data <- function(files) {
@@ -567,7 +566,9 @@ read_json_data <- function(files) {
   tryCatch({
     combined_text <- purrr::map_vec(
       files,
-      .f = brio::read_file,
+      .f = function(file) {
+        paste(readLines(file, warn = FALSE), collapse = "\n")
+      },
       .progress = TRUE
     )
 

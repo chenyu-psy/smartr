@@ -6,6 +6,23 @@
 \alias{smartr-package}
 \title{smartr: Smart Ways to Run Bayesian Models on JATOS Data}
 \description{
-More about what it does (maybe more than one line) Use four spaces when indenting paragraphs within the Description.
+A comprehensive toolkit for processing JATOS (Just Another Tool for Online Studies) data and fitting Bayesian models. The package provides functions for data retrieval, preprocessing, model fitting with 'brms', and advanced post-processing including Bayes factor computation and pairwise comparisons of estimated marginal means. It streamlines the workflow from raw experimental data to publication-ready Bayesian analysis results, with special focus on cognitive and psychological research data.
+}
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/username/smartr}
+  \item Report bugs at \url{https://github.com/username/smartr/issues}
+}
+
+}
+\author{
+\strong{Maintainer}: Chenyu Li \email{chenyu.li.hz@gmail.com}
+
+Authors:
+\itemize{
+  \item Joscha Dutli \email{joscha.dutli@psychologie.uzh.ch}
+}
+
 }
 \keyword{internal}

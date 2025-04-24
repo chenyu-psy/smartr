@@ -9,12 +9,12 @@ update_job(.x, status, path = NULL)
 \arguments{
 \item{.x}{Character or numeric. The job name (character) or index (numeric).}
 
-\item{status}{Character. The new status of the job. Must be one of `"pending"`, `"running"`, `"completed"`, or `"failed"`.}
+\item{status}{Character. The new status of the job. Must be one of \code{"pending"}, \code{"running"}, \code{"completed"}, or \code{"failed"}.}
 
-\item{path}{Character. Optional. The directory where the job log is stored. If `NULL`, the function looks in the temporary directory.}
+\item{path}{Character. Optional. The directory where the job log is stored. If \code{NULL}, the function looks in the temporary directory.}
 }
 \description{
-Updates the status of a job in the job log. If setting a job to `"running"`, it records the start time.
-If setting a job to `"completed"` or `"failed"`, it records the end time and calculates duration.
+Updates the status of a job in the job log. If setting a job to \code{"running"}, it records the start time.
+If setting a job to \code{"completed"} or \code{"failed"}, it records the end time and calculates duration.
 }
 \keyword{internal}

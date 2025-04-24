@@ -20,21 +20,21 @@ parallel_model_comparison(
 )
 }
 \arguments{
-\item{fun}{Function. The function used to fit models (supports `brms` and `bmm` models).}
+\item{fun}{Function. The function used to fit models (supports \code{brms} and \code{bmm} models).}
 
 \item{pars}{List. A named list of parameter values to compare.}
 
-\item{form_fun}{Function. A function to generate model formulas (default is `NULL`).}
+\item{form_fun}{Function. A function to generate model formulas (default is \code{NULL}).}
 
-\item{model_fun}{Function. A function to generate models (supports `bmm` models only, default is `NULL`).}
+\item{model_fun}{Function. A function to generate models (supports \code{bmm} models only, default is \code{NULL}).}
 
-\item{prior_fun}{Function. A function to generate prior distributions (default is `NULL`).}
+\item{prior_fun}{Function. A function to generate prior distributions (default is \code{NULL}).}
 
 \item{args}{List. Additional arguments passed to the model-fitting function.}
 
-\item{sampler_args}{List. Arguments for `bridge_sampler` (default: `{cores = 1, repetition = 10, maxiter = 1000}`).}
+\item{sampler_args}{List. Arguments for \code{bridge_sampler} (default: \verb{\{cores = 1, repetition = 10, maxiter = 1000\}}).}
 
-\item{model_name}{Character. The base name for models (default: `"Model"`).}
+\item{model_name}{Character. The base name for models (default: \code{"Model"}).}
 
 \item{model_path}{Character. The directory to store models.}
 
@@ -42,7 +42,7 @@ parallel_model_comparison(
 
 \item{maxCore}{Integer. The maximum number of cores to use (default is system limit).}
 
-\item{sample_check}{Logical. If `TRUE`, checks whether samples exist before running (default: `TRUE`).}
+\item{sample_check}{Logical. If \code{TRUE}, checks whether samples exist before running (default: \code{TRUE}).}
 }
 \value{
 A data frame containing the model comparison table.

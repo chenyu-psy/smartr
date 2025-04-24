@@ -1,17 +1,26 @@
 Package: smartr
 Type: Package
 Title: Smart Ways to Run Bayesian Models on JATOS Data
-Version: 0.2.6
-Author: c(person("Chenyu", "Li", email = "chenyu.li.hz@gmail.com", role = c("aut", "cre")),
-          person("Joscha", "Dutli", email = "joscha.dutli@psychologie.uzh.ch", role = c("aut")))
-Maintainer: The package maintainer <chenyu.li.hz@gmail.com>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Version: 0.2.7
+Authors@R: c(
+    person("Chenyu", "Li", email = "chenyu.li.hz@gmail.com", role = c("aut", "cre")),
+    person("Joscha", "Dutli", email = "joscha.dutli@psychologie.uzh.ch", role = c("aut"))
+  )
+Description: A comprehensive toolkit for processing JATOS (Just Another Tool for 
+    Online Studies) data and fitting Bayesian models. The package provides 
+    functions for data retrieval, preprocessing, model fitting with 'brms', 
+    and advanced post-processing including Bayes factor computation and 
+    pairwise comparisons of estimated marginal means. It streamlines the 
+    workflow from raw experimental data to publication-ready Bayesian analysis 
+    results, with special focus on cognitive and psychological research data.
 License: MIT + file LICENSE
+URL: https://github.com/username/smartr
+BugReports: https://github.com/username/smartr/issues
 Encoding: UTF-8
 LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
 Imports:
-    magrittr,
     dplyr,
     tidyr,
     stringr,
@@ -19,18 +28,15 @@ Imports:
     httr,
     jsonlite,
     rlang,
-    brio,
-    utils,
     stats,
-    fs,
     job,
-    brms,
-    pdftools,
-    bridgesampling
+    brms (>= 2.18.0),
+    bridgesampling (>= 1.1.0),
+    emmeans (>= 1.8.0),
+    bayestestR (>= 0.13.0)
 Suggests:
     testthat (>= 3.0.0),
     knitr,
     rmarkdown,
     ids
-RoxygenNote: 7.3.2
 Config/testthat/edition: 3

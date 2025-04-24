@@ -13,9 +13,9 @@ compare_best(pars, sample_path, sample_prefix, favorBF = 3, shuffle = FALSE)
 
 \item{sample_prefix}{The prefix of the sample.}
 
-\item{favorBF}{The favor of the Bayes Factor. The default is `3`.}
+\item{favorBF}{The favor of the Bayes Factor. The default is \code{3}.}
 
-\item{shuffle}{Logical. If `TRUE`, the function will shuffle the order of the model comparison. The default is `FALSE`.}
+\item{shuffle}{Logical. If \code{TRUE}, the function will shuffle the order of the model comparison. The default is \code{FALSE}.}
 }
 \value{
 A table of the model comparison.

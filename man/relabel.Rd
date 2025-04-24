@@ -9,9 +9,9 @@ relabel(x, labels, factor = TRUE)
 \arguments{
 \item{x}{A factor or character vector to be relabeled.}
 
-\item{labels}{A named vector or a named list specifying the new labels. Each name in `labels` must correspond to a unique value in `x`.}
+\item{labels}{A named vector or a named list specifying the new labels. Each name in \code{labels} must correspond to a unique value in \code{x}.}
 
-\item{factor}{Logical. If `TRUE` (default), the output is returned as a factor; otherwise, as a character vector.}
+\item{factor}{Logical. If \code{TRUE} (default), the output is returned as a factor; otherwise, as a character vector.}
 }
 \value{
 A factor or character vector with relabeled values.

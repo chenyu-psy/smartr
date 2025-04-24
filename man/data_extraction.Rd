@@ -7,7 +7,7 @@
 This module provides functions for extracting key-value pairs from text-based data files.
 It includes two main functions:
 \itemize{
-  \item \code{read_keys_info}: Extracts key-value pairs from a single file
-  \item \code{extract_data_info}: Processes multiple files and returns results as a tibble
+\item \code{read_keys_info}: Extracts key-value pairs from a single file
+\item \code{extract_data_info}: Processes multiple files and returns results as a tibble
 }
 }

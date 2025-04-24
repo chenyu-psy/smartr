@@ -19,7 +19,7 @@ smart_runFun(
 \arguments{
 \item{fun}{A function to be run in parallel.}
 
-\item{args}{A list of arguments for `fun`.}
+\item{args}{A list of arguments for \code{fun}.}
 
 \item{untilFinished}{NULL or a numeric vector. If provided, the function will not run until the specified jobs are completed.}
 
@@ -31,11 +31,11 @@ smart_runFun(
 
 \item{checkInt}{The time interval (in seconds) for checking the job log.}
 
-\item{name}{A name for the job. If `NULL`, a random identifier is generated.}
+\item{name}{A name for the job. If \code{NULL}, a random identifier is generated.}
 
 \item{export}{A character vector specifying objects to export to the global environment.}
 }
 \description{
 This function runs a function in parallel while managing execution with a waiting list.
-It uses the `job` package to manage job logs and execution.
+It uses the \code{job} package to manage job logs and execution.
 }

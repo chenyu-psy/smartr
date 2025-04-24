@@ -143,17 +143,17 @@ smart_runFun <- function(
     start_time <- Sys.time()
     message("\nTask started at ", format(start_time, "%Y-%m-%d %H:%M:%S"))
 
-    smartr:::update_job(current_index, status = "running", path = job_log_path)
+    update_job(current_index, status = "running", path = job_log_path)
 
     tryCatch(
       expr = {
         results <- do.call(fun, args)
         if (is.character(export)) assign(export, results, envir = environment())
 
-        smartr:::update_job(current_index, status = "completed", path = job_log_path)
+        update_job(current_index, status = "completed", path = job_log_path)
       },
       error = function(e) {
-        smartr:::update_job(current_index, status = "failed", path = job_log_path)
+        update_job(current_index, status = "failed", path = job_log_path)
         message("Error: ", e)
       },
       finally = {

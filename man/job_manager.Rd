@@ -13,17 +13,19 @@ view_job(.x = NULL, path = NULL)
 remove_job(.x, path = NULL)
 }
 \arguments{
-\item{path}{Character. Optional. The directory where the job log is stored. If `NULL`, the function looks in the temporary directory.}
+\item{path}{Character. Optional. The directory where the job log is stored. If \code{NULL}, the function looks in the temporary directory.}
 
-\item{.x}{Character or numeric. The job name (character) or index (numeric). For `view_job` and `remove_job`, if `NULL`, returns or removes all jobs.}
+\item{.x}{Character or numeric. The job name (character) or index (numeric). For \code{view_job} and \code{remove_job}, if \code{NULL}, returns or removes all jobs.}
 }
 \description{
 These functions manage a job log, which is stored as an RDS file. The job log tracks the status, priority, and other details of jobs.
 }
 \details{
-- `init_job`: Initializes a new job log.
-- `view_job`: Retrieves the status of one or more jobs.
-- `remove_job`: Removes one or more jobs from the job log.
+\itemize{
+\item \code{init_job}: Initializes a new job log.
+\item \code{view_job}: Retrieves the status of one or more jobs.
+\item \code{remove_job}: Removes one or more jobs from the job log.
+}
 }
 \examples{
 \dontrun{

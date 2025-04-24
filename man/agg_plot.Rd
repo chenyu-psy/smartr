@@ -19,22 +19,24 @@ agg_plot(
 
 \item{y}{The variable to be aggregated (can be a string or tidyverse-style variable).}
 
-\item{between}{The between-subject factor (can be a string or tidyverse-style variable). Default is `NULL`.}
+\item{between}{The between-subject factor (can be a string or tidyverse-style variable). Default is \code{NULL}.}
 
-\item{within}{The within-subject factor (can be a string or tidyverse-style variable). Default is `NULL`.}
+\item{within}{The within-subject factor (can be a string or tidyverse-style variable). Default is \code{NULL}.}
 
-\item{group}{The grouping variable (can be a string or tidyverse-style variable). Default is `NULL`.}
+\item{group}{The grouping variable (can be a string or tidyverse-style variable). Default is \code{NULL}.}
 
-\item{ci}{The confidence interval level. Default is `0.95`.}
+\item{ci}{The confidence interval level. Default is \code{0.95}.}
 
-\item{zero.rm}{Logical indicating whether to remove cases where the mean and standard deviation are both zero. Default is `TRUE`.}
+\item{zero.rm}{Logical indicating whether to remove cases where the mean and standard deviation are both zero. Default is \code{TRUE}.}
 }
 \value{
 A data frame containing the aggregated data with the following columns:
-- `mean`: The mean of the aggregated variable.
-- `n`: The number of observations.
-- `se`: The standard error of the mean.
-- `ci`: The confidence interval.
+\itemize{
+\item \code{mean}: The mean of the aggregated variable.
+\item \code{n}: The number of observations.
+\item \code{se}: The standard error of the mean.
+\item \code{ci}: The confidence interval.
+}
 }
 \description{
 This function aggregates data for plotting by computing the mean, standard error, and confidence interval. It supports both between-subject and within-subject factors, and includes adjustments for within-subject variability (e.g., Morey correction).
