@@ -4,7 +4,13 @@
 \alias{bf_pairwise}
 \title{Pairwise Bayesian Comparisons from a brms Model}
 \usage{
-bf_pairwise(model, prior = NULL, specs, cont_values = NULL)
+bf_pairwise(
+  model,
+  prior = NULL,
+  specs,
+  cont_values = NULL,
+  direction = "two-sided"
+)
 }
 \arguments{
 \item{model}{A fitted \code{brmsfit} object (posterior model).}
@@ -18,6 +24,9 @@ If provided, it is used for Bayes Factor computation.}
 
 \item{cont_values}{Optional named list specifying values of continuous variables at which
 to estimate marginal means (e.g., \code{list(age = c(25, 40))}).}
+
+\item{direction}{A character string specifying the direction of the hypothesis for
+Bayes Factor computation, passed to \code{bayestestR::bayesfactor_parameters}.}
 }
 \value{
 A list with class "pairwise_comparison" containing:

@@ -13,6 +13,8 @@
 #'   \code{c(~ formula1, ~ formula2)}.
 #' @param cont_values Optional named list specifying values of continuous variables at which
 #'   to estimate marginal means (e.g., \code{list(age = c(25, 40))}).
+#' @param direction A character string specifying the direction of the hypothesis for
+#'   Bayes Factor computation, passed to \code{bayestestR::bayesfactor_parameters}.
 #'
 #' @return A list with class "pairwise_comparison" containing:
 #' \describe{
@@ -88,7 +90,8 @@ bf_pairwise <- function(
     model,
     prior = NULL,
     specs,
-    cont_values = NULL
+    cont_values = NULL,
+    direction = "two-sided"
 ) {
   # Validate input arguments
   validate_inputs(model, prior, specs, cont_values)
@@ -96,7 +99,7 @@ bf_pairwise <- function(
   # Handle multiple specs
   if (is.list(specs) && !inherits(specs, "formula") && length(specs) > 1) {
     results_list <- lapply(specs, function(spec) {
-      bf_pairwise(model = model, prior = prior, specs = spec, cont_values = cont_values)
+      bf_pairwise(model = model, prior = prior, specs = spec, cont_values = cont_values, direction = direction)
     })
     names(results_list) <- sapply(specs, function(spec) deparse(spec))
     class(results_list) <- "pairwise_comparison_list"
@@ -130,8 +133,16 @@ bf_pairwise <- function(
   }
 
   # Compute Bayes Factors
-  bf_results <- compute_bayes_factors(posterior_results$pairs,
-                                      prior_pairs = prior_results$pairs)
+  bf_results <- if (!is.null(prior_results)) {
+    bayestestR::bayesfactor_parameters(
+      posterior_results$pairs,
+      prior = prior_results$pairs,
+      direction = direction)
+  } else {
+    bayestestR::bayesfactor_parameters(
+      posterior_results$pairs,
+      direction = direction)
+  }
 
   # Return results as a structured list
   structure(
@@ -145,6 +156,7 @@ bf_pairwise <- function(
     class = "pairwise_comparison"
   )
 }
+
 
 #' Extract formula from a brmsfit object
 #'
@@ -316,22 +328,7 @@ compute_emmeans_and_pairs <- function(model, spec, at_list) {
   return(list(emmeans = emm, pairs = pairs_emm))
 }
 
-#' Compute Bayes Factors for pairwise comparisons
-#'
-#' @param posterior_pairs Pairwise comparisons from posterior model
-#' @param prior_pairs Pairwise comparisons from prior model (if any)
-#'
-#' @return Bayes factor results
-#' @noRd
-compute_bayes_factors <- function(posterior_pairs, prior_pairs = NULL) {
-  if (!is.null(prior_pairs)) {
-    bf_results <- bayestestR::bayesfactor_parameters(posterior_pairs, prior = prior_pairs)
-  } else {
-    bf_results <- bayestestR::bayesfactor_parameters(posterior_pairs)
-  }
 
-  return(bf_results)
-}
 
 #' Print method for pairwise_comparison objects
 #'
