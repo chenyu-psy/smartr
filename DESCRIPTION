@@ -7,12 +7,20 @@ Authors@R: c(
     person("Joscha", "Dutli", email = "joscha.dutli@psychologie.uzh.ch", role = c("aut"))
   )
 Description: A comprehensive toolkit for processing JATOS (Just Another Tool for 
-    Online Studies) data and fitting Bayesian models. The package provides 
-    functions for data retrieval, preprocessing, model fitting with 'brms', 
-    and advanced post-processing including Bayes factor computation and 
-    pairwise comparisons of estimated marginal means. It streamlines the 
-    workflow from raw experimental data to publication-ready Bayesian analysis 
-    results, with special focus on cognitive and psychological research data.
+    Online Studies) data and conducting Bayesian analyses in R. The package provides 
+    three main sets of functionality: (1) Job Management: Intelligent background job 
+    scheduling, monitoring, and resource management built on the 'job' package, with 
+    functions for parallel and sequential model comparison; (2) JATOS Data Processing: 
+    Tools for retrieving, organizing, and preprocessing experimental data from JATOS, 
+    including API integration, metadata enrichment, and JSON data handling; (3) Bayesian 
+    Analysis: Functions for model fitting with 'brms', data aggregation, formula 
+    manipulation, and advanced post-processing including Bayes factor computation and 
+    pairwise comparisons. The package streamlines the workflow from raw experimental 
+    data to publication-ready Bayesian analysis results, with special focus on cognitive 
+    and psychological research data. While developed primarily to enhance personal 
+    programming experience when conducting Bayesian analyses, many functions can be 
+    useful in specific research contexts. This package has been tested primarily on 
+    macOS and Linux systems.
 License: MIT + file LICENSE
 URL: https://github.com/username/smartr
 BugReports: https://github.com/username/smartr/issues
