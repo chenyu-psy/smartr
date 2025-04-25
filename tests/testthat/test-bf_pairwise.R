@@ -1,4 +1,4 @@
-# tests/testthat/test-bf_pairs.R
+# tests/testthat/test-bf_pairwise.R
 
 # Load required packages for testing
 library(testthat)
@@ -52,33 +52,33 @@ test_that("Setup test models", {
 })
 
 # Test input validation
-test_that("bf_pairs validates inputs correctly", {
+test_that("bf_pairwise validates inputs correctly", {
   # Skip if test_model is not available
   skip_if_not(exists("test_model", envir = .GlobalEnv))
   test_model <- get("test_model", envir = .GlobalEnv)
 
   # Test missing model
-  expect_error(bf_pairs(specs = ~ condition), "Argument 'model' is missing or NULL")
+  expect_error(bf_pairwise(specs = ~ condition), "Argument 'model' is missing or NULL")
 
   # Test invalid model type
   fake_model <- lm(score ~ condition, data = test_data)
-  expect_error(bf_pairs(model = fake_model, specs = ~ condition),
+  expect_error(bf_pairwise(model = fake_model, specs = ~ condition),
                "Argument 'model' must be a 'brmsfit' object")
 
   # Test missing specs
-  expect_error(bf_pairs(model = test_model), "Argument 'specs' is missing or NULL")
+  expect_error(bf_pairwise(model = test_model), "Argument 'specs' is missing or NULL")
 
   # Test invalid prior type
-  expect_error(bf_pairs(model = test_model, prior = fake_model, specs = ~ condition),
+  expect_error(bf_pairwise(model = test_model, prior = fake_model, specs = ~ condition),
                "Argument 'prior' must be a 'brmsfit' object or NULL")
 
   # Test invalid cont_values type
-  expect_error(bf_pairs(model = test_model, specs = ~ condition, cont_values = "not_a_list"),
+  expect_error(bf_pairwise(model = test_model, specs = ~ condition, cont_values = "not_a_list"),
                "Argument 'cont_values' must be a named list or NULL")
 })
 
 # Test basic functionality without prior
-test_that("bf_pairs works with model only", {
+test_that("bf_pairwise works with model only", {
   # Skip if test_model is not available
   skip_if_not(exists("test_model", envir = .GlobalEnv))
   test_model <- get("test_model", envir = .GlobalEnv)
@@ -87,7 +87,7 @@ test_that("bf_pairs works with model only", {
   # Suppress warnings about priors
   suppressWarnings({
     # Run function with minimal arguments
-    result <- bf_pairs(model = test_model, specs = ~ condition)
+    result <- bf_pairwise(model = test_model, specs = ~ condition)
   })
 
   # Check return structure
@@ -107,7 +107,7 @@ test_that("bf_pairs works with model only", {
 })
 
 # Test with continuous variable specifications
-test_that("bf_pairs handles continuous variables correctly", {
+test_that("bf_pairwise handles continuous variables correctly", {
   # Skip if test_model is not available
   skip_if_not(exists("test_model", envir = .GlobalEnv))
   test_model <- get("test_model", envir = .GlobalEnv)
@@ -116,16 +116,16 @@ test_that("bf_pairs handles continuous variables correctly", {
   # Suppress warnings about priors
   suppressWarnings({
     # Run with default handling of continuous variables
-    result1 <- bf_pairs(model = test_model, specs = ~ condition)
+    result1 <- bf_pairwise(model = test_model, specs = ~ condition)
 
     # Should use mean of age by default
     expect_message(
-      bf_pairs(model = test_model, specs = ~ condition),
+      bf_pairwise(model = test_model, specs = ~ condition),
       "Continuous variable 'age' detected"
     )
 
     # Run with custom continuous variable values
-    result2 <- bf_pairs(
+    result2 <- bf_pairwise(
       model = test_model,
       specs = ~ condition,
       cont_values = list(age = c(25, 35))
@@ -139,7 +139,7 @@ test_that("bf_pairs handles continuous variables correctly", {
 })
 
 # Test with different emmeans specifications
-test_that("bf_pairs works with different emmeans specifications", {
+test_that("bf_pairwise works with different emmeans specifications", {
   # Skip if test_model is not available
   skip_if_not(exists("test_model", envir = .GlobalEnv))
   test_model <- get("test_model", envir = .GlobalEnv)
@@ -148,13 +148,13 @@ test_that("bf_pairs works with different emmeans specifications", {
   # Suppress warnings about priors
   suppressWarnings({
     # Test with simple specification
-    result1 <- bf_pairs(model = test_model, specs = ~ condition)
+    result1 <- bf_pairwise(model = test_model, specs = ~ condition)
 
     # Test with interaction specification
-    result2 <- bf_pairs(model = test_model, specs = ~ condition | time)
+    result2 <- bf_pairwise(model = test_model, specs = ~ condition | time)
 
     # Test with more complex specification
-    result3 <- bf_pairs(model = test_model, specs = ~ condition * time)
+    result3 <- bf_pairwise(model = test_model, specs = ~ condition * time)
   })
 
   expect_equal(nrow(result1$emmeans@grid), 2) # Two conditions
@@ -163,7 +163,7 @@ test_that("bf_pairs works with different emmeans specifications", {
 })
 
 # Test with multiple specifications
-test_that("bf_pairs works with multiple specifications", {
+test_that("bf_pairwise works with multiple specifications", {
   # Skip if test_model is not available
   skip_if_not(exists("test_model", envir = .GlobalEnv))
   test_model <- get("test_model", envir = .GlobalEnv)
@@ -172,7 +172,7 @@ test_that("bf_pairs works with multiple specifications", {
   # Suppress warnings about priors
   suppressWarnings({
     # Test with multiple specifications
-    result <- bf_pairs(
+    result <- bf_pairwise(
       model = test_model,
       specs = c(~ condition, ~ condition | time)
     )
@@ -232,10 +232,10 @@ test_that("print methods work correctly", {
   # Suppress warnings about priors
   suppressWarnings({
     # Run function with single spec
-    result1 <- bf_pairs(model = test_model, specs = ~ condition)
+    result1 <- bf_pairwise(model = test_model, specs = ~ condition)
 
     # Run function with multiple specs
-    result2 <- bf_pairs(
+    result2 <- bf_pairwise(
       model = test_model,
       specs = c(~ condition, ~ condition | time)
     )
@@ -288,7 +288,7 @@ test_that("helper functions work correctly with mock objects", {
 })
 
 # Add a test with a simpler model to avoid long-running tests
-test_that("bf_pairs works with a minimal model", {
+test_that("bf_pairwise works with a minimal model", {
   skip_on_cran()
 
   # Create a very simple model with minimal iterations
@@ -319,8 +319,8 @@ test_that("bf_pairs works with a minimal model", {
 
   # Suppress warnings about priors
   suppressWarnings({
-    # Run bf_pairs with the minimal model
-    result <- bf_pairs(model = mini_model, specs = ~ x)
+    # Run bf_pairwise with the minimal model
+    result <- bf_pairwise(model = mini_model, specs = ~ x)
   })
 
   # Basic checks

@@ -61,14 +61,14 @@
 #'                  data = data, sample_prior = "only", iter = 1000, chains = 2)
 #'
 #' # Run pairwise comparisons with a single spec
-#' res1 <- bf_pairs(
+#' res1 <- bf_pairwise(
 #'   model = fit,
 #'   prior = fit_prior,
 #'   specs = ~ IV1 | IV2
 #' )
 #'
 #' # Run pairwise comparisons with multiple specs
-#' res2 <- bf_pairs(
+#' res2 <- bf_pairwise(
 #'   model = fit,
 #'   prior = fit_prior,
 #'   specs = c(~ IV1 | IV2, ~ IV2 | IV1)
@@ -84,7 +84,7 @@
 #' @importFrom stats formula
 #' @importFrom bayestestR bayesfactor_parameters
 #' @export
-bf_pairs <- function(
+bf_pairwise <- function(
     model,
     prior = NULL,
     specs,
@@ -96,7 +96,7 @@ bf_pairs <- function(
   # Handle multiple specs
   if (is.list(specs) && !inherits(specs, "formula") && length(specs) > 1) {
     results_list <- lapply(specs, function(spec) {
-      bf_pairs(model = model, prior = prior, specs = spec, cont_values = cont_values)
+      bf_pairwise(model = model, prior = prior, specs = spec, cont_values = cont_values)
     })
     names(results_list) <- sapply(specs, function(spec) deparse(spec))
     class(results_list) <- "pairwise_comparison_list"
