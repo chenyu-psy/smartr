@@ -1,3 +1,81 @@
+#' Add New Columns to a Data Frame Using Formulas
+#'
+#' @description
+#' This function adds new columns to a data frame by evaluating R formulas.
+#' It processes each formula to extract the target column name (left-hand side)
+#' and evaluates the right-hand side expression using the data frame's existing columns.
+#' The interface mimics dplyr's `mutate()` function but uses formulas for column creation.
+#'
+#' @param .data A data frame or data frame extension (e.g., a tibble).
+#' @param ... One or more formulas used to create new columns. Each formula should have
+#'        the form `new_column_name ~ expression`.
+#'
+#' @return A data frame with new columns added based on the provided formulas.
+#' @examples
+#' df <- data.frame(x = 1:5, y = 6:10)
+#' mutate_formula(df, z ~ x + y, w ~ x * y)
+#' mutate_formula(df, ratio ~ x/y, sum_sq ~ x^2 + y^2)
+#'
+#' @export
+mutate_formula <- function(.data, ...) {
+  # Input validation
+  if (!is.data.frame(.data)) {
+    stop("'.data' must be a data frame or data frame extension")
+  }
+
+  # Capture the formulas from ...
+  formulas <- list(...)
+
+  if (length(formulas) == 0) {
+    warning("No formulas provided, returning original data frame")
+    return(.data)
+  }
+
+  # Create a copy of the data frame to avoid modifying the original
+  result_data <- .data
+
+  # Process each formula
+  for (formula in formulas) {
+    # Validate formula
+    if (!inherits(formula, "formula")) {
+      stop("Each argument must be a formula")
+    }
+
+    # Extract dependent variable (target column name)
+    target_column <- extract_dependent_vars(formula)
+
+    if (is.null(target_column)) {
+      stop("Formula must have a left-hand side (dependent variable)")
+    }
+
+    if (length(target_column) > 1) {
+      stop("Multiple dependent variables not supported in a single formula")
+    }
+
+    # Extract independent variables (source columns)
+    source_columns <- extract_independent_vars(formula)
+
+    # Check if all source columns exist in the data frame
+    missing_columns <- setdiff(source_columns, names(result_data))
+    if (length(missing_columns) > 0) {
+      stop("Missing columns in data frame: ",
+           paste(missing_columns, collapse = ", "))
+    }
+
+    # Extract the right-hand side expression as a string
+    formula_parts <- as.character(formula)
+    rhs_expression <- formula_parts[length(formula_parts)]
+
+    # Evaluate the expression within the context of the data frame
+    result_data[[target_column]] <- eval(parse(text = rhs_expression),
+                                         envir = result_data)
+  }
+
+  return(result_data)
+}
+
+
+
 #' Extract Independent Variables from an R Formula
 #'
 #' This function parses an R formula and extracts all independent variables
