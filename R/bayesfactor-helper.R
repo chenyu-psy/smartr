@@ -378,3 +378,127 @@ print.pairwise_comparison_list <- function(x, ...) {
 
   invisible(x)
 }
+
+
+#' @title Compare Log Marginal Likelihood of Different Models
+#'
+#' @description
+#' This function compares the log marginal likelihood (logml) of different models
+#' based on saved samples.
+#'
+#' @param pars List. A named list of parameters to compare.
+#' @param sample_path Character. The directory where the sample files are stored.
+#' @param sample_prefix Character. The prefix of the sample filenames.
+#'
+#' @return A data frame containing log marginal likelihoods for different models.
+#'
+#' @importFrom dplyr mutate select across everything
+#' @importFrom stats median
+#' @export
+compare_logml <- function(pars, sample_path, sample_prefix) {
+
+  # ---- Input Validation ----
+  if (!is.list(pars) || length(names(pars)) == 0) stop("`pars` must be a named list.")
+  if (!dir.exists(sample_path)) stop("`sample_path` does not exist: ", sample_path)
+  if (!is.character(sample_prefix) || sample_prefix == "") stop("`sample_prefix` must be a non-empty character string.")
+
+  # ---- Create Comparison Table ----
+  table_model_info <- do.call(base::expand.grid, args = pars) %>%
+    mutate(
+      part_name = apply(across(everything()), 1, function(row)
+        paste(names(row), row, sep = "", collapse = "_")
+      ),
+      sample_file = file.path(sample_path, paste0(sample_prefix, "_", .data$part_name, ".rds")),
+      logml = NA_real_
+    )
+
+  # Check if all sample files exist before reading
+  missing_files <- !file.exists(table_model_info$sample_file)
+  if (any(missing_files)) {
+    stop("The following sample files are missing:\n",
+         paste(table_model_info$sample_file[missing_files], collapse = "\n"))
+  }
+
+  # ---- Extract Log Marginal Likelihood (logml) ----
+  for (i in seq_len(nrow(table_model_info))) {
+
+    # Read sample file with error handling
+    sample_current <- tryCatch(
+      readRDS(as.character(table_model_info$sample_file[i])),
+      error = function(e) stop("Error reading file: ", table_model_info$sample_file[i])
+    )
+
+    # Extract and store logml
+    table_model_info$logml[i] <- median(sample_current$logml, na.rm = TRUE)
+  }
+
+  # Remove unnecessary columns before returning
+  table_model_info <- select(table_model_info, -c(part_name, sample_file))
+
+  return(table_model_info)
+}
+
+
+#' @title Run the model comparison sequentially and calculate Bayes Factor
+#'
+#' @description This function calculates the Bayes Factor between the best model and competing models. The favored model will replace the best model and compare with the next model.
+#'
+#' @param pars A list of parameters to compare. Each parameter is a list of values.
+#' @param sample_path The path to store the sample.
+#' @param sample_prefix The prefix of the sample.
+#' @param favorBF The favor of the Bayes Factor. The default is `3`.
+#' @param shuffle Logical. If `TRUE`, the function will shuffle the order of the model comparison. The default is `FALSE`.
+#'
+#' @return A table of the model comparison.
+#' @export
+
+compare_best <- function(pars, sample_path, sample_prefix, favorBF = 3, shuffle = FALSE) {
+
+  # Table for the model comparison
+  Table_model_info <- do.call(base::expand.grid, args = pars) %>%
+    dplyr::mutate(
+      part_name = apply(dplyr::across(dplyr::everything()), 1, function(row)
+        paste(names(row), row, sep = "", collapse = "_")
+      ),
+      comparison = NA,
+      BF = NA,
+      logBF = NA,
+      reliability = NA,
+      best_model = NA,
+      sample_file = paste0(sample_path, sample_prefix, "_", .data$part_name,".rds")
+    )
+
+  if (shuffle) {
+    Table_model_info <- Table_model_info[sample(nrow(Table_model_info)), ]
+  }
+
+  Table_model_info$best_model[1] = 1
+
+  for (i in 2:nrow(Table_model_info)) {
+
+    # get the best model from the last row
+    index_best_sample = Table_model_info$best_model[i - 1]
+
+    Sample_best <-
+      readRDS(as.character(Table_model_info[index_best_sample, "sample_file"]))
+    Sample_currect <-
+      readRDS(as.character(Table_model_info[i, "sample_file"]))
+
+    BF <- bridgesampling::bf(Sample_currect, Sample_best)
+
+    Table_model_info[i, c("comparison", "BF", "logBF", "reliability", "best_model")] <- list(
+      stringr::str_glue("Model {i} vs. Model {index_best_sample}"),
+      BF$bf_median_based,
+      log(BF$bf_median_based),
+      paste0(round(log(min(BF$bf)), 2), " ~ ", round(log(max(BF$bf)), 2)),
+      ifelse(BF$bf_median_based > favorBF, i, index_best_sample)
+    )
+
+  }
+
+  Table_model_info <- Table_model_info %>%
+    dplyr::select(dplyr::all_of(names(pars)), .data$comparison, .data$BF, .data$logBF, .data$reliability, .data$best_model)
+
+  return(Table_model_info)
+
+}
