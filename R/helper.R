@@ -42,37 +42,24 @@ mutate_formula <- function(.data, ...) {
     }
 
     # Extract dependent variable (target column name)
-    target_column <- extract_dependent_vars(formula)
-
-    if (is.null(target_column)) {
+    # Access the LHS directly from the formula structure
+    if (length(formula) < 3) {
       stop("Formula must have a left-hand side (dependent variable)")
     }
 
-    if (length(target_column) > 1) {
-      stop("Multiple dependent variables not supported in a single formula")
-    }
+    target_column <- as.character(formula[[2]])
 
-    # Extract independent variables (source columns)
-    source_columns <- extract_independent_vars(formula)
-
-    # Check if all source columns exist in the data frame
-    missing_columns <- setdiff(source_columns, names(result_data))
-    if (length(missing_columns) > 0) {
-      stop("Missing columns in data frame: ",
-           paste(missing_columns, collapse = ", "))
-    }
-
-    # Extract the right-hand side expression as a string
-    formula_parts <- as.character(formula)
-    rhs_expression <- formula_parts[length(formula_parts)]
+    # Extract the right-hand side expression directly
+    # This preserves the full expression structure including namespaces
+    rhs_expr <- formula[[3]]
 
     # Evaluate the expression within the context of the data frame
-    result_data[[target_column]] <- eval(parse(text = rhs_expression),
-                                         envir = result_data)
+    result_data[[target_column]] <- eval(rhs_expr, envir = result_data)
   }
 
   return(result_data)
 }
+
 
 
 
