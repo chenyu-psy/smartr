@@ -20,6 +20,8 @@
 #'        Each element should be a vector of length 2 (c(min, max)) or NULL to use default limits.
 #'
 #' @return A ggplot2 layer that can be added to a ggplot object
+#'
+#' @importFrom ggplot2 ggplot_add
 #' @export
 #'
 #' @examples
