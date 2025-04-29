@@ -33,6 +33,7 @@ Imports:
     tidyr,
     stringr,
     purrr,
+    ggplot2,
     httr,
     jsonlite,
     rlang,
