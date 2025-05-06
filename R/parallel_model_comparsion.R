@@ -2,7 +2,7 @@
 #'
 #' @description
 #' This function compares multiple models using parallel execution. It fits models, runs bridge sampling,
-#' and calculates Bayes Factors.
+#' and calculates Bayes Factors (if requested).
 #'
 #' @param fun Function. The function used to fit models (supports `brms` and `bmm` models).
 #' @param pars List. A named list of parameter values to compare.
@@ -10,7 +10,7 @@
 #' @param model_fun Function. A function to generate models (supports `bmm` models only, default is `NULL`).
 #' @param prior_fun Function. A function to generate prior distributions (default is `NULL`).
 #' @param args List. Additional arguments passed to the model-fitting function.
-#' @param sampler_args List. Arguments for `bridge_sampler` (default: `{cores = 1, repetition = 10, maxiter = 1000}`).
+#' @param sampler_args List or NULL. Arguments for `bridge_sampler` (default: `list(cores = 1, repetition = 10, maxiter = 1000)`). If `NULL`, bridge sampling is skipped.
 #' @param model_name Character. The base name for models (default: `"Model"`).
 #' @param model_path Character. The directory to store models.
 #' @param sample_path Character. The directory to store bridge sampling results.
@@ -116,33 +116,33 @@ parallel_model_comparison <- function(
     index_model <- which(job_info$name == current_model_label)
 
     # ---- Run Bridge Sampling ----
-    smart_runFun(
-      fun = function(table_path, iModel, sampler_args) {
-        table_model_info <- readRDS(table_path)
+    if (!is.null(sampler_args)) {   # <-- Only run if sampler_args is not NULL
+      smart_runFun(
+        fun = function(table_path, iModel, sampler_args) {
+          table_model_info <- readRDS(table_path)
 
-        # File paths
-        model_file <- table_model_info$model_file[iModel]
-        sample_file <- table_model_info$sample_file[iModel]
+          # File paths
+          model_file <- table_model_info$model_file[iModel]
+          sample_file <- table_model_info$sample_file[iModel]
 
-        if (!file.exists(sample_file)) {
-          model <- readRDS(model_file)
-          sampler_args$samples <- model
-          sample <- do.call(brms::bridge_sampler, sampler_args)
-          saveRDS(sample, sample_file)
-        }
-      },
-      untilFinished = index_model,
-      args = list(
-        table_path = file_model_table,
-        iModel = i,
-        sampler_args = sampler_args
-      ),
-      cores = sampler_args$cores,
-      maxCore = maxCore,
-      priority = 1,
-      name = table_model_info$sample_name[i]
-    )
-
+          if (!file.exists(sample_file)) {
+            model <- readRDS(model_file)
+            sampler_args$samples <- model
+            sample <- do.call(brms::bridge_sampler, sampler_args)
+            saveRDS(sample, sample_file)
+          }
+        },
+        untilFinished = index_model,
+        args = list(
+          table_path = file_model_table,
+          iModel = i,
+          sampler_args = sampler_args
+        ),
+        cores = sampler_args$cores,
+        maxCore = maxCore,
+        priority = 1,
+        name = table_model_info$sample_name[i]
+      )
+    }
   }
-
 }
