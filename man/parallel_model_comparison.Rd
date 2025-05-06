@@ -32,7 +32,7 @@ parallel_model_comparison(
 
 \item{args}{List. Additional arguments passed to the model-fitting function.}
 
-\item{sampler_args}{List. Arguments for \code{bridge_sampler} (default: \verb{\{cores = 1, repetition = 10, maxiter = 1000\}}).}
+\item{sampler_args}{List or NULL. Arguments for \code{bridge_sampler} (default: \code{list(cores = 1, repetition = 10, maxiter = 1000)}). If \code{NULL}, bridge sampling is skipped.}
 
 \item{model_name}{Character. The base name for models (default: \code{"Model"}).}
 
@@ -49,5 +49,5 @@ A data frame containing the model comparison table.
 }
 \description{
 This function compares multiple models using parallel execution. It fits models, runs bridge sampling,
-and calculates Bayes Factors.
+and calculates Bayes Factors (if requested).
 }
