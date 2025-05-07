@@ -164,13 +164,14 @@ summary(study_data)
 -   Data is saved in organized subfolders by batch ID and result ID
 -   The metadata contains timestamps, durations, and file paths for all results
 
-## Aggregation relative functions
+## Data manipulation and visualization functions
 
-The aggregation relative functions are designed to help you aggregate the data.
+### Data manipulation
+1. `mutate_formula`: Add new columns to the data frame according to the provided formula.
+2. `agg_multinomial`: Aggregate the data for models using a multinomial data distribution.
+
+### Data visualization
 
 1.  `agg_plot`: Summarize the mean, standard deviation, and 95% confidence interval of the data for plotting.
-2.  `agg_multinomial`: Aggregate the data for models using a multinomial data distribution.
-
-## Model relative functions
-
-1.  `mutate_form`: Add new columns to the data frame according to the provided formula.
+2.  `facet_scales`: Adjust the x-axis and/or y-axis scales independently for each facet plot.
+3.  `geom_errorbar_adjusted`: Adjusts the width of error bars in ggplot2 when the number of groups varies across conditions.
