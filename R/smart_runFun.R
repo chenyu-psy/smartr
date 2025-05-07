@@ -95,6 +95,10 @@ smart_runFun <- function(
   # Run job in background
   job::job({
 
+    # import functions
+    update_job <- getFromNamespace("update_job", "smartr")
+    append_job <- getFromNamespace("append_job", "smartr")
+
     message("\nThe task is now in the waiting list ...")
 
     while (TRUE) {
@@ -143,17 +147,17 @@ smart_runFun <- function(
     start_time <- Sys.time()
     message("\nTask started at ", format(start_time, "%Y-%m-%d %H:%M:%S"))
 
-    smartr:::update_job(current_index, status = "running", path = job_log_path)
+    update_job(current_index, status = "running", path = job_log_path)
 
     tryCatch(
       expr = {
         results <- do.call(fun, args)
         if (is.character(export)) assign(export, results, envir = environment())
 
-        smartr:::update_job(current_index, status = "completed", path = job_log_path)
+        update_job(current_index, status = "completed", path = job_log_path)
       },
       error = function(e) {
-        smartr:::update_job(current_index, status = "failed", path = job_log_path)
+        update_job(current_index, status = "failed", path = job_log_path)
         message("Error: ", e)
       },
       finally = {

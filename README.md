@@ -60,11 +60,12 @@ remove_job("model_fit")  # Remove by name
 
 ## Advanced Functions
 
-This package also includes advanced functions for model comparison
+This package also includes advanced functions for parallel model fitting or model comparison
 
 ### 1. Parallel Model Comparison
 
-The `parallel_model_comparison` function enables efficient comparison of multiple statistical models using parallel execution. It automates model fitting, bridge sampling, and Bayes Factor calculations across parameter combinations.
+The `parallel_model_fit` function fits a grid of models in parallel (or in sequence) and, if
+optionally runs `bridge_sampler()` on each fitted model and stores the results for later Bayes‑factor computation.
 
 #### Key Features:
 
@@ -77,14 +78,14 @@ The `parallel_model_comparison` function enables efficient comparison of multipl
 
 ``` r
 
-list_for_model_comparison <- list(
+list_for_model_grid <- list(
   par_a = c("a1", "a2"),
   par_b = c("b1", "b2")
 )
 
-parallel_model_comparison(
+parallel_model_fit(
   fun = brm,  # Model fitting function
-  pars = list_for_model_comparison,
+  loop_args = list_for_model_grid,
   form_fun = gen_formula,
   args = list(  # Common arguments for all models
     data = my_data,
@@ -92,7 +93,7 @@ parallel_model_comparison(
   ),
   model_name = "Model",
   model_path = "./models",  # Directory to store fitted models
-  sample_path = "./samples"  # Directory to store bridge samples
+  sampler_args = NULL       # Bridge-sampling is skipped (otherwise, arguments for `bridge_sampler()`)
 )
 ```
 
@@ -164,13 +165,14 @@ summary(study_data)
 -   Data is saved in organized subfolders by batch ID and result ID
 -   The metadata contains timestamps, durations, and file paths for all results
 
-## Aggregation relative functions
+## Data manipulation and visualization functions
 
-The aggregation relative functions are designed to help you aggregate the data.
+### Data manipulation
+1. `mutate_formula`: Add new columns to the data frame according to the provided formula.
+2. `agg_multinomial`: Aggregate the data for models using a multinomial data distribution.
+
+### Data visualization
 
 1.  `agg_plot`: Summarize the mean, standard deviation, and 95% confidence interval of the data for plotting.
-2.  `agg_multinomial`: Aggregate the data for models using a multinomial data distribution.
-
-## Model relative functions
-
-1.  `mutate_form`: Add new columns to the data frame according to the provided formula.
+2.  `facet_scales`: Adjust the x-axis and/or y-axis scales independently for each facet plot.
+3.  `geom_errorbar_adjusted`: Adjusts the width of error bars in ggplot2 when the number of groups varies across conditions.

@@ -1,36 +1,51 @@
 Package: smartr
 Type: Package
 Title: Smart Ways to Run Bayesian Models on JATOS Data
-Version: 0.2.6
-Author: c(person("Chenyu", "Li", email = "chenyu.li.hz@gmail.com", role = c("aut", "cre")),
-          person("Joscha", "Dutli", email = "joscha.dutli@psychologie.uzh.ch", role = c("aut")))
-Maintainer: The package maintainer <chenyu.li.hz@gmail.com>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Version: 0.3.0
+Authors@R: c(
+    person("Chenyu", "Li", email = "chenyu.li.hz@gmail.com", role = c("aut", "cre")),
+    person("Joscha", "Dutli", email = "joscha.dutli@psychologie.uzh.ch", role = c("aut"))
+  )
+Description: A comprehensive toolkit for processing JATOS data and conducting Bayesian 
+    analyses in R. The package provides three main sets of functionality: 
+    (1) Job Management: Intelligent background job scheduling, monitoring, and 
+    resource management built on the 'job' package, with functions for parallel and 
+    sequential model fit; (2) JATOS Data Processing: Tools for retrieving, organizing, 
+    and preprocessing experimental data from JATOS, including API integration, metadata 
+    enrichment, and JSON data handling; (3) Data Visualization and Manipulation: 
+    Functions for data aggregation, plotting, and transformation with special support 
+    for experimental designs in psychological research. The package streamlines the 
+    workflow from raw experimental data to publication-ready analysis results, with 
+    special focus on cognitive and psychological research data. While developed 
+    primarily to enhance personal programming experience when conducting Bayesian 
+    analyses, many functions can be useful in specific research contexts. This package 
+    has been tested primarily on macOS and Linux systems.
 License: MIT + file LICENSE
+URL: https://github.com/username/smartr
+BugReports: https://github.com/username/smartr/issues
 Encoding: UTF-8
 LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
 Imports:
-    magrittr,
     dplyr,
     tidyr,
     stringr,
     purrr,
+    ggplot2,
     httr,
     jsonlite,
     rlang,
-    brio,
-    utils,
     stats,
-    fs,
     job,
-    brms,
-    pdftools,
-    bridgesampling
+    brms (>= 2.18.0),
+    bridgesampling (>= 1.1.0),
+    emmeans (>= 1.8.0),
+    bayestestR (>= 0.13.0),
+    logspline
 Suggests:
     testthat (>= 3.0.0),
     knitr,
     rmarkdown,
     ids
-RoxygenNote: 7.3.2
 Config/testthat/edition: 3

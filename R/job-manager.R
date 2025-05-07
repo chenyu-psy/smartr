@@ -124,7 +124,7 @@ remove_job <- function(.x, path = NULL) {
   saveRDS(table_status, file_path)
 
   # Inform the user
-  message("Job '", .x, "' removed from job log.")
+  message("Job '", paste(.x, collapse = ", "), "' removed from job log.")
 }
 
 #' Append a new job to the job log.

@@ -24,17 +24,13 @@ on JATOS. See: https://www.jatos.org/JATOS-API.html#personal-access-tokens}
 in a "JATOS_DATA" folder in the working directory.}
 
 \item{attachments}{A logical value indicating whether to download attachments. Default is FALSE.}
-
-\item{method}{A character string specifying the download method. Options are:
-- "all": Download all data for the specified batch IDs (default)
-- "missing": Only download data that is missing or has changed based on file size comparison}
 }
 \value{
 A data frame containing metadata about the downloaded JATOS results.
 }
 \description{
 This function downloads result data from a JATOS (Just Another Tool for Online Studies) server
-using an API token and specified study ID and batch ID. It then unzips and extracts the relevant data,
+using an API token and specified batch ID. It then unzips and extracts the relevant data,
 including metadata, file names, and file contents. The function can download all data for specified
 batch IDs or only download missing data based on comparison with local files.
 }
