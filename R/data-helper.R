@@ -12,25 +12,34 @@
 #' @return A character vector of column names.
 #' @keywords internal
 get_colnames <- function(data, vars) {
-  if (is.null(vars) || (is_symbol(vars) && identical(as_string(vars), ""))) return(NULL)
-  if (is_symbol(vars)) vars <- as_string(vars)
-  if (is_quosure(vars)) {
-    expr <- get_expr(vars)
-    if (is.null(expr) || (is.symbol(expr) && identical(as.character(expr), ""))) return(NULL)
-    vars <- as_name(vars)
-  }
+  # Accept NULL
+  if (is.null(vars)) return(NULL)
+
+  # Accept character vector directly
   if (is.character(vars)) {
     missing <- setdiff(vars, names(data))
-    if (length(missing) > 0) stop("Column(s) not found in data: ", paste(missing, collapse = ", "))
+    if (length(missing) > 0)
+      stop("Column(s) not found in data: ", paste(missing, collapse = ", "))
     return(vars)
   }
-  cols <- tryCatch(
-    names(select(data, !!vars)),
-    error = function(e) stop("Could not select columns for variable(s): ", deparse(substitute(vars)), "\n", e$message)
-  )
-  return(cols)
-}
 
+  # Accept quosure or symbol or call (e.g., c(x, y))
+  # Use tidyselect to resolve
+  # Support for tidyselect expressions, symbols, and calls
+  out <- tryCatch(
+    tidyselect::eval_select(rlang::enquo(vars), data = data),
+    error = function(e) {
+      # Try as quosure (if vars is already a quosure)
+      tryCatch(
+        tidyselect::eval_select(vars, data = data),
+        error = function(e2) {
+          stop("Could not resolve columns for input: ", deparse(substitute(vars)), "\n", e2$message)
+        }
+      )
+    }
+  )
+  names(data)[out]
+}
 
 #' Aggregate Data for Plotting (Between/Within-Subject Design)
 #'
@@ -114,7 +123,7 @@ agg_plot <- function(data, y, between = NULL, within = NULL, group = NULL, ci = 
       summarise(sub_y = mean(.data[[y_name]], na.rm = TRUE), .groups = "drop")
 
     # Adjust for within-subject variability (Morey correction)
-    if (!is.null(within_vars)) {
+    if (length(within_vars)!=0) {
       df_participant <- df_participant %>%
         group_by(across(all_of(c(group_vars, between_vars)))) %>%
         mutate(user_mean = mean(sub_y, na.rm = TRUE)) %>%
@@ -144,8 +153,8 @@ agg_plot <- function(data, y, between = NULL, within = NULL, group = NULL, ci = 
     }
 
     # Morey correction for within-subject SE
-    if (!is.null(within_vars)) {
-      if (!is.null(between_vars)) {
+    if (length(within_vars)!=0) {
+      if (length(between_vars)!=0) {
         df_plot <- df_plot %>%
           group_by(across(all_of(between_vars))) %>%
           mutate(
