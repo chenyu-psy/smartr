@@ -10,6 +10,7 @@ parallel_map(
   ...,
   cores = 1,
   fun_file = NULL,
+  pre_check = NULL,
   post_analysis = NULL,
   maxCore = NULL
 )
@@ -28,6 +29,9 @@ parallel_map(
 \item{cores}{Integer. Number of cores to use for parallel processing (default: 1). If \code{cores} is included in \code{...}, do not provide it again.}
 
 \item{fun_file}{NULL or function. A generator function for output file paths. If NULL, no file saving is performed.}
+
+\item{pre_check}{NULL or function. A function to apply before running the main function.
+This function should return \code{TRUE} to skip the run or \code{FALSE} to proceed.}
 
 \item{post_analysis}{NULL or function. A function to apply to the results. The function must include \code{...} in its signature to allow additional arguments to be passed.}
 

@@ -9,6 +9,8 @@
 #'   - Generator functions with the prefix `fun_` (e.g., `fun_formula`, `fun_prior`), which will be called with the values from the current row of `design` to generate arguments for `fun`.
 #' @param cores Integer. Number of cores to use for parallel processing (default: 1). If `cores` is included in `...`, do not provide it again.
 #' @param fun_file NULL or function. A generator function for output file paths. If NULL, no file saving is performed.
+#' @param pre_check NULL or function. A function to apply before running the main function.
+#' This function should return `TRUE` to skip the run or `FALSE` to proceed.
 #' @param post_analysis NULL or function. A function to apply to the results. The function must include `...` in its signature to allow additional arguments to be passed.
 #' @param maxCore Integer. Maximum number of cores to use (default: system limit).
 #'
@@ -20,6 +22,7 @@ parallel_map <- function(
     ...,
     cores = 1,
     fun_file = NULL,
+    pre_check = NULL,
     post_analysis = NULL,
     maxCore = NULL
 ) {
@@ -108,6 +111,13 @@ parallel_map <- function(
       run_function <- function(fun, args, file = NULL) {
         do.call(fun, args)
       }
+    }
+
+    # --- Pre-check ----
+    if (!is.null(pre_check) & !is.function(pre_check)) {
+      skip_run <- do.call(pre_check, param_values)
+      if (skip_run) next
+
     }
 
     # Set a label for the current job
