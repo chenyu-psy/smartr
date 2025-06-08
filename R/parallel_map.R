@@ -218,6 +218,7 @@ parallel_map <- function(
 #' @examples
 #' res <- save_results(path = "output", format = "csv")
 #' print(res)
+#' @export
 save_results <- function(
     path = "./results/",
     name_prefix = "Results",
