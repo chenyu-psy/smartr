@@ -43,7 +43,7 @@
 #'  \item \code{result}: The result output from the main function.
 #'   \item \code{vars}: The parameter values for the last run (\code{param_values}).
 #'   \item \code{run_args}: The arguments used for the last run (\code{run_args}).
-#'   \item \code{file}: The file path for the saved result (\code{tmp_file}), if saving is enabled.
+#'   \item \code{save_args}: The current \code{auto_save} list.
 #' }
 #'
 #' @export
@@ -159,7 +159,8 @@ parallel_map <- function(
         post_args <- list(
           result = result,
           vars = param_values,
-          run_args = run_args
+          run_args = run_args,
+          save_args = auto_save
         )
         post_result <- do.call(post_analysis, post_args)
       } else {
@@ -167,7 +168,7 @@ parallel_map <- function(
       }
 
       # Save the post result if auto_save is provided
-      if (!is.null(auto_save) && post_result!=NULL) {
+      if (!is.null(auto_save) && !is.null(post_result)) {
 
         save_args <- auto_save$args
 

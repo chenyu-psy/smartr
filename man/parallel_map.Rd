@@ -67,6 +67,6 @@ The following arguments are passed automatically and can be used directly in you
 \item \code{result}: The result output from the main function.
 \item \code{vars}: The parameter values for the last run (\code{param_values}).
 \item \code{run_args}: The arguments used for the last run (\code{run_args}).
-\item \code{file}: The file path for the saved result (\code{tmp_file}), if saving is enabled.
+\item \code{save_args}: The current \code{auto_save} list.
 }
 }
