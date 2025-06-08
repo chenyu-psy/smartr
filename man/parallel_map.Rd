@@ -62,6 +62,7 @@ If provided, \code{post_analysis} is called after all runs for post-processing.
 The function signature must include \code{...} to allow for additional variables.
 The following arguments are passed automatically and can be used directly in your \code{post_analysis} function:
 \itemize{
+\item \code{result}: The result output from the main function.
 \item \code{vars}: The parameter values for the last run (\code{param_values}).
 \item \code{run_args}: The arguments used for the last run (\code{run_args}).
 \item \code{file}: The file path for the saved result (\code{tmp_file}), if saving is enabled.

@@ -38,6 +38,7 @@
 #' The function signature must include \code{...} to allow for additional variables.
 #' The following arguments are passed automatically and can be used directly in your \code{post_analysis} function:
 #' \itemize{
+#'  \item \code{result}: The result output from the main function.
 #'   \item \code{vars}: The parameter values for the last run (\code{param_values}).
 #'   \item \code{run_args}: The arguments used for the last run (\code{run_args}).
 #'   \item \code{file}: The file path for the saved result (\code{tmp_file}), if saving is enabled.
@@ -96,6 +97,15 @@ parallel_map <- function(
     }
   }
 
+  # Check that all required fields for auto_save are present
+  if (!is.null(auto_save)) {
+    required_fields <- c("name_prefix", "sep", "format", "path", "save_fun")
+    missing_fields <- setdiff(required_fields, names(auto_save))
+    if (length(missing_fields) > 0) {
+      stop(sprintf("auto_save is missing required fields: %s", paste(missing_fields, collapse = ", ")))
+    }
+  }
+
   # Add `cores` to the argument list if required
   if ("cores" %in% fun_arg_names) static_args$cores <- cores
 
@@ -121,29 +131,6 @@ parallel_map <- function(
     # Generate a label for the current job (your original logic)
     current_label <- paste0(names(param_values), unlist(param_values), collapse = if (!is.null(auto_save)) auto_save$sep else "_")
 
-    # Handle file saving if auto_save is provided
-    if (!is.null(auto_save)) {
-      required_fields <- c("name_prefix", "sep", "format", "path", "save_fun")
-      missing_fields <- setdiff(required_fields, names(auto_save))
-      if (length(missing_fields) > 0) {
-        stop(sprintf("auto_save is missing required fields: %s", paste(missing_fields, collapse = ", ")))
-      }
-      tmp_file_name <- paste0(auto_save$name_prefix, auto_save$sep, current_label, ".", auto_save$format)
-      tmp_file <- file.path(auto_save$path, tmp_file_name)
-
-      run_function <- function(fun, args, file, save_args=NULL) {
-        result <- do.call(fun, args)
-        save_args$file <- file
-        do.call(auto_save$save_fun, c(list(result), save_args))
-        invisible(result)
-      }
-    } else {
-      tmp_file <- NULL
-      run_function <- function(fun, args, file = NULL, save_args = NULL) {
-        do.call(fun, args)
-      }
-    }
-
     # --- Pre-check ----
 
     # Prepare arguments for pre-check
@@ -159,6 +146,38 @@ parallel_map <- function(
       if (skip_run) next
     }
 
+    # ---- Run Function ----
+    run_function <- function(fun, args, auto_save = NULL) {
+
+      # apply the function with the provided arguments
+      result <- do.call(fun, args)
+
+      # If post_analysis is provided, run it after the main function
+      if (!is.null(post_analysis)) {
+        post_args <- list(
+          result = result,
+          vars = param_values,
+          run_args = run_args
+        )
+        post_result <- do.call(post_analysis, post_args)
+      } else {
+        post_result <- result
+      }
+
+      # Save the post result if auto_save is provided
+      if (!is.null(auto_save)) {
+
+        save_args <- auto_save$args
+
+        tmp_file_name <- paste0(auto_save$name_prefix, auto_save$sep, current_label, ".", auto_save$format)
+        tmp_file <- file.path(auto_save$path, tmp_file_name)
+        save_args$file <- tmp_file
+
+        do.call(auto_save$save_fun, c(list(post_result), save_args))
+      }
+
+    }
+
     # Set a label for the current job
     job_name <- paste0("Job_", current_label)
 
@@ -168,37 +187,13 @@ parallel_map <- function(
       args = list(
         fun = fun,
         args = run_args,
-        file = tmp_file,
-        save_args = auto_save$args
+        auto_save = auto_save
       ),
       untilFinished = NULL,
       maxCore = maxCore,
       priority = 1,
       name = job_name
     )
-
-    job_index <- view_job()$index[view_job()$name == job_name]
-
-    # ---- Post-Processing ----
-
-    # Prepare arguments for post-analysis
-    post_analysis_args <- list(
-      run_args = run_args,
-      vars = param_values,
-      file = tmp_file
-    )
-
-    if (!is.null(post_analysis)) {
-      job_name <- paste0("Post_Analysis_", current_label)
-      smart_runFun(
-        fun = post_analysis,
-        args = post_analysis_args,
-        untilFinished = job_index,
-        maxCore = maxCore,
-        priority = 1,
-        name = job_name
-      )
-    }
   }
 
   invisible(NULL)
