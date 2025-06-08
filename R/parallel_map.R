@@ -192,6 +192,7 @@ parallel_map <- function(
         args = run_args,
         auto_save = auto_save
       ),
+      cores = ifelse("cores" %in% names(run_args), run_args$cores, cores),
       untilFinished = NULL,
       maxCore = maxCore,
       priority = 1,
