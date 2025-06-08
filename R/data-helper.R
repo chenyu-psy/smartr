@@ -148,8 +148,15 @@ agg_plot <- function(data, y, between = NULL, within = NULL, group = NULL, ci = 
           ci   = qt(1 - (1 - ci) / 2, n - 1) * se,
           .groups = "drop"
         )
-    } else if (length(plot_group_vars) == 0) {
-      df_plot <- df_participant
+    } else {
+      df_plot <- df_participant %>%
+        summarise(
+          mean = mean(y_adjusted, na.rm = TRUE),
+          n    = n(),
+          se   = sd(y_adjusted, na.rm = TRUE) / sqrt(n),
+          ci   = qt(1 - (1 - ci) / 2, n - 1) * se,
+          .groups = "drop"
+        )
     }
 
     # Morey correction for within-subject SE
@@ -328,7 +335,7 @@ agg_multinomial <- function(
     dplyr::group_by(dplyr::across(dplyr::all_of(new_group))) %>%
     # Calculate sum of responses for each group
     dplyr::summarise(
-      Resp = sum(.data$value, na.rm = TRUE),
+      Resp = sum(value, na.rm = TRUE),
       .groups = "drop"
     )
 
@@ -336,18 +343,18 @@ agg_multinomial <- function(
   if (!is.null(group_vars)) {
     data_sum <- data_sum %>%
       dplyr::group_by(dplyr::across(dplyr::all_of(group_vars))) %>%
-      dplyr::mutate(!!nDV_name := sum(.data$Resp, na.rm = TRUE)) %>%
+      dplyr::mutate(!!nDV_name := sum(Resp, na.rm = TRUE)) %>%
       dplyr::ungroup()
   } else {
     data_sum <- data_sum %>%
-      dplyr::mutate(!!nDV_name := sum(.data$Resp, na.rm = TRUE))
+      dplyr::mutate(!!nDV_name := sum(Resp, na.rm = TRUE))
   }
 
   # Convert back to wide format
   data_sum <- data_sum %>%
     tidyr::pivot_wider(
-      names_from = .data$response,
-      values_from = .data$Resp
+      names_from = response,
+      values_from = Resp
     )
 
   # Prepare output based on whether DV_name is provided
