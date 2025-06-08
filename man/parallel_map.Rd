@@ -2,41 +2,68 @@
 % Please edit documentation in R/parallel_map.R
 \name{parallel_map}
 \alias{parallel_map}
-\title{Parallel Map Function}
+\title{Parallel Map over Parameter Grid}
 \usage{
 parallel_map(
   fun,
   design = list(),
   ...,
   cores = 1,
-  fun_file = NULL,
+  auto_save = save_results(),
   pre_check = NULL,
   post_analysis = NULL,
   maxCore = NULL
 )
 }
 \arguments{
-\item{fun}{A function to be applied in parallel.}
+\item{fun}{Function. The main function to be applied to each parameter combination.}
 
-\item{design}{A named list. Specifies the grid of parameter values to iterate over.}
+\item{design}{Named list. Each element defines a parameter and its possible values; all combinations are evaluated.}
 
-\item{...}{Additional arguments passed to \code{fun}. These can be:
-\itemize{
-\item Static arguments (e.g., \code{formula}, \code{data}), or
-\item Generator functions with the prefix \code{fun_} (e.g., \code{fun_formula}, \code{fun_prior}), which will be called with the values from the current row of \code{design} to generate arguments for \code{fun}.
-}}
+\item{...}{Additional arguments passed to \code{fun}. Can be static arguments or generator functions with the prefix \code{fun_}.}
 
-\item{cores}{Integer. Number of cores to use for parallel processing (default: 1). If \code{cores} is included in \code{...}, do not provide it again.}
+\item{cores}{Integer. Number of cores to use for parallel processing (default: 1).}
 
-\item{fun_file}{NULL or function. A generator function for output file paths. If NULL, no file saving is performed.}
+\item{auto_save}{NULL or list. If a list, provides information for saving results (see \code{save_results}).
+By default, uses \code{save_results()} (i.e., saves to "./results/" as RDS files).
+If NULL, results are not saved to disk.}
 
-\item{pre_check}{NULL or function. A function to apply before running the main function.
-This function should return \code{TRUE} to skip the run or \code{FALSE} to proceed.}
+\item{pre_check}{NULL or function. Optional function called before each run to determine whether to skip the run.
+See \strong{Details} for usage and required signature.}
 
-\item{post_analysis}{NULL or function. A function to apply to the results. The function must include \code{...} in its signature to allow additional arguments to be passed.}
+\item{post_analysis}{NULL or function. Optional function called after all runs for post-processing.
+See \strong{Details} for usage and required signature.}
 
-\item{maxCore}{Integer. Maximum number of cores to use (default: system limit).}
+\item{maxCore}{Integer. Maximum number of cores to use for parallel processing (default: system limit).}
 }
 \description{
-Applies a function in parallel over a grid of parameter combinations, supporting both static and dynamically-generated arguments.
+Applies a function in parallel across all combinations of parameters defined in a design grid.
+Supports both static and dynamically-generated arguments, as well as optional pre-checks, result saving, and post-analysis.
+}
+\details{
+\strong{Dynamic Argument Generators:}
+Arguments to \code{...} with the prefix \code{fun_} (e.g., \code{fun_formula}) must be functions.
+These are called with the current row of \code{design} to generate arguments for \code{fun}.
+
+\strong{Pre-check Function:}
+If provided, \code{pre_check} is called before each run to determine whether to skip that run.
+The function signature must include \code{...} to allow for additional variables.
+The following arguments are passed automatically and can be used directly in your \code{pre_check} function:
+\itemize{
+\item \code{vars}: A named list of the current parameter values.
+\item \code{run_args}: The arguments used for the current run (i.e., \code{run_args}).
+\item \code{label}: The label string for the current parameter combination.
+\item \code{save_args}: The current \code{auto_save} list.
+}
+The function should return \code{TRUE} to skip the run, or \code{FALSE} to proceed.
+
+\strong{Post-analysis Function:}
+If provided, \code{post_analysis} is called after all runs for post-processing.
+The function signature must include \code{...} to allow for additional variables.
+The following arguments are passed automatically and can be used directly in your \code{post_analysis} function:
+\itemize{
+\item \code{vars}: The parameter values for the last run (\code{param_values}).
+\item \code{run_args}: The arguments used for the last run (\code{run_args}).
+\item \code{file}: The file path for the saved result (\code{tmp_file}), if saving is enabled.
+}
 }
