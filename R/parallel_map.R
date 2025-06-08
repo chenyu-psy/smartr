@@ -167,7 +167,7 @@ parallel_map <- function(
       }
 
       # Save the post result if auto_save is provided
-      if (!is.null(auto_save)) {
+      if (!is.null(auto_save) || post_result==NULL) {
 
         save_args <- auto_save$args
 
