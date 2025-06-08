@@ -22,7 +22,9 @@ parallel_map(
 
 \item{...}{Additional arguments passed to \code{fun}. Can be static arguments or generator functions with the prefix \code{fun_}.}
 
-\item{cores}{Integer. Number of cores to use for parallel processing (default: 1).}
+\item{cores}{Integer. Number of cores to use for parallel processing (default: 1).
+This argument would be passed to the main function if it accepts it.
+If \code{fun_cores} exists, it will be ignored.}
 
 \item{auto_save}{NULL or list. If a list, provides information for saving results (see \code{save_results}).
 By default, uses \code{save_results()} (i.e., saves to "./results/" as RDS files).

@@ -7,6 +7,8 @@
 #' @param design Named list. Each element defines a parameter and its possible values; all combinations are evaluated.
 #' @param ... Additional arguments passed to \code{fun}. Can be static arguments or generator functions with the prefix \code{fun_}.
 #' @param cores Integer. Number of cores to use for parallel processing (default: 1).
+#' This argument would be passed to the main function if it accepts it.
+#' If \code{fun_cores} exists, it will be ignored.
 #' @param auto_save NULL or list. If a list, provides information for saving results (see \code{save_results}).
 #'   By default, uses \code{save_results()} (i.e., saves to "./results/" as RDS files).
 #'   If NULL, results are not saved to disk.
@@ -107,7 +109,7 @@ parallel_map <- function(
   }
 
   # Add `cores` to the argument list if required
-  if ("cores" %in% fun_arg_names) static_args$cores <- cores
+  if ("cores" %in% fun_arg_names && !"fun_cores" %in% arg_funs) static_args$cores <- cores
 
   # ---- Create Design Grid ----
   grid_args <- c(design, stringsAsFactors = FALSE)
