@@ -77,7 +77,6 @@ view_job <- function(.x = NULL, path = NULL) {
   lock <- filelock::lock(lock_path, timeout = 10000)  # waits up to 10 seconds
   on.exit(filelock::unlock(lock), add = TRUE)
   table_status <- readRDS(file_path)
-  filelock::unlock(lock)  # unlock immediately after reading
 
   # Filter based on input
   if (!is.null(.x)) {
@@ -133,7 +132,6 @@ remove_job <- function(.x, path = NULL) {
 
   # Save updated job log
   saveRDS(table_status, file_path)
-  filelock::unlock(lock)  # unlock immediately after reading
 
   # Inform the user
   message("Job '", paste(.x, collapse = ", "), "' removed from job log.")
@@ -217,7 +215,6 @@ append_job <- function(name = NULL, cores = 1, untilFinished = NULL, priority = 
 
   # Save updated job log
   saveRDS(table_status, file_path)
-  filelock::unlock(lock)  # unlock immediately after reading
 }
 
 #' Update the job status.
@@ -299,6 +296,5 @@ update_job <- function(.x, status, path = NULL) {
 
   # Save updated job log
   saveRDS(table_status, file_path)
-  filelock::unlock(lock)  # unlock immediately after reading
 }
 
