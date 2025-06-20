@@ -1,7 +1,7 @@
 Package: smartr
 Type: Package
 Title: Smart Ways to Run Bayesian Models on JATOS Data
-Version: 0.3.1
+Version: 0.3.2
 Authors@R: c(
     person("Chenyu", "Li", email = "chenyu.li.hz@gmail.com", role = c("aut", "cre")),
     person("Joscha", "Dutli", email = "joscha.dutli@psychologie.uzh.ch", role = c("aut"))
@@ -30,6 +30,7 @@ RoxygenNote: 7.3.2
 Imports:
     dplyr,
     tidyr,
+    tidyselect,
     stringr,
     purrr,
     ggplot2,
@@ -38,14 +39,13 @@ Imports:
     rlang,
     stats,
     job,
-    brms (>= 2.18.0),
-    bridgesampling (>= 1.1.0),
     emmeans (>= 1.8.0),
     bayestestR (>= 0.13.0),
-    logspline,
     filelock
 Suggests:
     testthat (>= 3.0.0),
+    bridgesampling,
+    tibble,
     knitr,
     rmarkdown,
     ids
