@@ -69,7 +69,7 @@ test_that("agg_plot handles missing data", {
   missing_data <- test_data
   missing_data$value[1:5] <- NA
 
-  result <- agg_plot(missing_data, y = value, between = condition, within = setsize)
+  result <- agg_plot(missing_data, y = value, between = condition, within = setsize, group = participant)
 
   expect_s3_class(result, "data.frame")
   expect_true(all(!is.na(result$mean)))  # Means should still be computed

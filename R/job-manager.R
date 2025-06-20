@@ -11,6 +11,8 @@
 #' - `view_job`: Retrieves the status of one or more jobs.
 #' - `remove_job`: Removes one or more jobs from the job log.
 #'
+#' @importFrom filelock lock unlock
+#'
 #' @examples
 #' \dontrun{
 #' # Initialize a job log
@@ -34,7 +36,7 @@ init_job <- function(path = NULL) {
   table_cols <- c("index", "name", "cores", "untilFinished", "priority",
                   "status", "startTime", "endTime", "duration")
 
-  table_status <- stats::setNames(data.frame(matrix(ncol = length(table_cols), nrow = 0)), table_cols)
+  table_status <- setNames(data.frame(matrix(ncol = length(table_cols), nrow = 0)), table_cols)
 
   # Determine file path
   if (!is.null(path)) {
@@ -56,12 +58,14 @@ init_job <- function(path = NULL) {
 #' @rdname job_manager
 #' @export
 view_job <- function(.x = NULL, path = NULL) {
+
   # Determine file path
   file_path <- if (!is.null(path)) {
     file.path(path, "job_log.rds")
   } else {
     file.path(tempdir(), "job_log.rds")
   }
+  lock_path <- paste0(file_path, ".lock")
 
   # Check if the log file exists
   if (!file.exists(file_path)) {
@@ -69,7 +73,9 @@ view_job <- function(.x = NULL, path = NULL) {
          "\nMake sure you have initialized the job log using `init_job()`.")
   }
 
-  # Load job log
+  # Lock and load job log
+  lock <- filelock::lock(lock_path, timeout = 10000)  # waits up to 10 seconds
+  on.exit(filelock::unlock(lock), add = TRUE)
   table_status <- readRDS(file_path)
 
   # Filter based on input
@@ -89,12 +95,14 @@ view_job <- function(.x = NULL, path = NULL) {
 #' @rdname job_manager
 #' @export
 remove_job <- function(.x, path = NULL) {
+
   # Determine file path
   file_path <- if (!is.null(path)) {
     file.path(path, "job_log.rds")
   } else {
     file.path(tempdir(), "job_log.rds")
   }
+  lock_path <- paste0(file_path, ".lock")
 
   # Check if job log file exists
   if (!file.exists(file_path)) {
@@ -102,7 +110,9 @@ remove_job <- function(.x, path = NULL) {
          "\nMake sure you have initialized the job log using `init_job()`.")
   }
 
-  # Read the job log
+  # Lock and load job log
+  lock <- filelock::lock(lock_path, timeout = 10000)  # waits up to 10 seconds
+  on.exit(filelock::unlock(lock), add = TRUE)
   table_status <- readRDS(file_path)
 
   # Check if .x exists in job log
@@ -170,6 +180,7 @@ append_job <- function(name = NULL, cores = 1, untilFinished = NULL, priority = 
   } else {
     file.path(tempdir(), "job_log.rds")
   }
+  lock_path <- paste0(file_path, ".lock")
 
   # Check if job log file exists
   if (!file.exists(file_path)) {
@@ -177,7 +188,9 @@ append_job <- function(name = NULL, cores = 1, untilFinished = NULL, priority = 
          "\nMake sure you have initialized the job log using `init_job()`.")
   }
 
-  # Read the job log
+  # Lock and load job log
+  lock <- filelock::lock(lock_path, timeout = 10000)  # waits up to 10 seconds
+  on.exit(filelock::unlock(lock), add = TRUE)
   table_status <- readRDS(file_path)
 
   # Determine job index
@@ -230,6 +243,7 @@ update_job <- function(.x, status, path = NULL) {
   } else {
     file.path(tempdir(), "job_log.rds")
   }
+  lock_path <- paste0(file_path, ".lock")
 
   # Check if job log file exists
   if (!file.exists(file_path)) {
@@ -237,7 +251,9 @@ update_job <- function(.x, status, path = NULL) {
          "\nMake sure you have initialized the job log using `init_job()`.")
   }
 
-  # Load job log
+  # Lock and load job log
+  lock <- filelock::lock(lock_path, timeout = 10000)  # waits up to 10 seconds
+  on.exit(filelock::unlock(lock), add = TRUE)
   table_status <- readRDS(file_path)
 
   # Identify job index

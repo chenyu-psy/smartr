@@ -1,138 +1,215 @@
-#' Aggregate Data for Plotting
+#' Resolve Column Names from Various Input Types
 #'
-#' @description This function aggregates data for plotting by computing the mean, standard error, and confidence interval. It supports both between-subject and within-subject factors, and includes adjustments for within-subject variability (e.g., Morey correction).
+#' @description
+#' Helper function to robustly resolve column names from user input (character, symbol, quosure, or tidyselect expression).
+#'
+#' @param data A data frame.
+#' @param vars A character vector, symbol, quosure, or tidyselect expression.
+#'
+#' @importFrom rlang is_symbol is_quosure as_string as_name get_expr
+#' @importFrom dplyr select
+#'
+#' @return A character vector of column names.
+#' @keywords internal
+get_colnames <- function(data, vars) {
+  # Accept NULL
+  if (is.null(vars)) return(NULL)
+
+  # Accept character vector directly
+  if (is.character(vars)) {
+    missing <- setdiff(vars, names(data))
+    if (length(missing) > 0)
+      stop("Column(s) not found in data: ", paste(missing, collapse = ", "))
+    return(vars)
+  }
+
+  # Accept quosure or symbol or call (e.g., c(x, y))
+  # Use tidyselect to resolve
+  # Support for tidyselect expressions, symbols, and calls
+  out <- tryCatch(
+    tidyselect::eval_select(rlang::enquo(vars), data = data),
+    error = function(e) {
+      # Try as quosure (if vars is already a quosure)
+      tryCatch(
+        tidyselect::eval_select(vars, data = data),
+        error = function(e2) {
+          stop("Could not resolve columns for input: ", deparse(substitute(vars)), "\n", e2$message)
+        }
+      )
+    }
+  )
+  names(data)[out]
+}
+
+#' Aggregate Data for Plotting (Between/Within-Subject Design)
+#'
+#' @description
+#' Aggregates data for plotting by computing the mean, standard error, and confidence interval.
+#' Supports both between-subject and within-subject factors, and applies Morey correction for within-subject designs.
 #'
 #' @param data A data frame containing the data to be aggregated.
-#' @param y The variable to be aggregated (can be a string or tidyverse-style variable).
-#' @param between The between-subject factor (can be a string or tidyverse-style variable). Default is `NULL`.
-#' @param within The within-subject factor (can be a string or tidyverse-style variable). Default is `NULL`.
-#' @param group The grouping variable (can be a string or tidyverse-style variable). Default is `NULL`.
-#' @param ci The confidence interval level. Default is `0.95`.
-#' @param zero.rm Logical indicating whether to remove cases where the mean and standard deviation are both zero. Default is `TRUE`.
+#' @param y The variable to be aggregated (string or unquoted variable name).
+#' @param between Between-subject factor(s) (string, unquoted variable name, or tidyselect expression). Default is `NULL`.
+#' @param within Within-subject factor(s) (string, unquoted variable name, or tidyselect expression). Default is `NULL`.
+#' @param group Subject/grouping variable(s) (string, unquoted variable name, or tidyselect expression). Default is `NULL`.
+#' @param ci Confidence interval level (between 0 and 1). Default is `0.95`.
+#' @param zero.rm Logical; if `TRUE`, removes cases where mean and sd are both zero. Default is `TRUE`.
 #'
-#' @return A data frame containing the aggregated data with the following columns:
-#' - `mean`: The mean of the aggregated variable.
-#' - `n`: The number of observations.
-#' - `se`: The standard error of the mean.
-#' - `ci`: The confidence interval.
-#'
-#' @importFrom rlang .data ensym sym
-#' @importFrom dplyr across group_by summarize ungroup mutate n select distinct left_join filter all_of
+#' @return A data frame with columns: mean, n, se, ci, and grouping variables.
+#' @keywords internal
+#' @importFrom dplyr across group_by summarise ungroup mutate n select distinct left_join filter all_of
+#' @importFrom rlang enquo as_name is_symbol is_quosure as_string get_expr
 #' @importFrom stats sd qt
-#' @importFrom purrr possibly
-#' @export
 #'
-#' @examples
-#' \dontrun{
-#' data <- data.frame(
-#'   subject = rep(1:10, each = 2),
-#'   condition = rep(c("A", "B"), times = 10),
-#'   score = rnorm(20)
-#' )
-#' agg_plot(data, y = score, between = condition, group = subject)
-#' }
+#' @export
 agg_plot <- function(data, y, between = NULL, within = NULL, group = NULL, ci = 0.95, zero.rm = TRUE) {
+  # Capture arguments as quosures for flexible input
+  y_quo       <- enquo(y)
+  between_quo <- enquo(between)
+  within_quo  <- enquo(within)
+  group_quo   <- enquo(group)
 
   # Input validation
   if (!is.data.frame(data)) stop("`data` must be a data frame.")
-  if (ci <= 0 || ci >= 1) stop("`ci` must be a value between 0 and 1.")
+  if (!is.numeric(ci) || length(ci) != 1 || ci <= 0 || ci >= 1) stop("`ci` must be a single value between 0 and 1.")
 
-  # Possibly function to handle NULL values gracefully
-  possibly_null <- purrr::possibly(is.null, otherwise = FALSE)
+  y_name       <- tryCatch(as_name(y_quo), error = function(e) NULL)
+  if (is.null(y_name) || !(y_name %in% names(data))) stop("`y` variable not found in data.")
 
-  # Function to convert tidyverse-style variable vectors to character vectors
-  var2string <- function(data,vars) {
-    select(data,{{vars}}) %>% names()
+  between_vars <- get_colnames(data, between_quo)
+  within_vars  <- get_colnames(data, within_quo)
+  group_vars   <- get_colnames(data, group_quo)
+
+  # Check for overlap between grouping variables
+  all_groupings <- c(between_vars, within_vars, group_vars)
+  if (any(duplicated(all_groupings))) {
+    stop("Grouping variables (between, within, group) must not overlap. Overlapping variable(s): ",
+         paste(unique(all_groupings[duplicated(all_groupings)]), collapse = ", "))
   }
 
-  # Convert inputs to symbols (supporting both string and tidyverse-style variables)
-  y <- ensym(y)
-  between <- if (!possibly_null(between)) var2string(data, {{between}}) else NULL
-  within <- if (!possibly_null(within)) var2string(data, {{within}}) else NULL
-  group <- if (!possibly_null(group)) var2string(data, {{group}}) else NULL
+  # Define grouping variables for participant-level aggregation
+  participant_group_vars <- c(group_vars, between_vars, within_vars)
+  if (length(participant_group_vars) == 0) stop("At least one grouping variable (group, between, or within) must be specified.")
 
-  # Define grouping variables dynamically
-  group_vars <- c(group, between, within)
+  # Check if each participant × between × within cell has only one row
+  n_rows_per_cell <- data %>%
+    group_by(across(all_of(participant_group_vars))) %>%
+    summarise(n = n(), .groups = "drop") %>%
+    pull(n)
 
-  # Aggregate data at the participant level
-  df <- data %>%
-    group_by(across(all_of(group_vars))) %>%
-    summarize(sub_y = mean(!!y, na.rm = TRUE), .groups = "drop")
+  single_measure_per_cell <- all(n_rows_per_cell == 1)
+  plot_group_vars <- c(between_vars, within_vars)
 
-  # Adjust data for within-subject variability
-  if (!possibly_null(within)) {
-    df <- df %>%
-      group_by(across(all_of(c(group, between)))) %>%
-      mutate(user_mean = mean(.data$sub_y, na.rm = TRUE)) %>%
-      ungroup() %>%
-      group_by(across(all_of(between))) %>%
-      mutate(grand_mean = mean(.data$sub_y, na.rm = TRUE)) %>%
-      ungroup() %>%
-      mutate(y_adjusted = .data$sub_y - .data$user_mean + .data$grand_mean)
+  if (single_measure_per_cell) {
+    # SIMPLE AGGREGATION, SKIP MOREY CORRECTION
+    df_participant <- data %>%
+      group_by(across(all_of(participant_group_vars))) %>%
+      summarise(mean_value = mean(.data[[y_name]], na.rm = TRUE), .groups = "drop")
+
+    df_plot <- df_participant %>%
+      group_by(across(all_of(plot_group_vars))) %>%
+      summarise(
+        mean = mean(mean_value, na.rm = TRUE),
+        n    = n(),
+        se   = sd(mean_value, na.rm = TRUE) / sqrt(n),
+        ci   = qt(1 - (1 - ci) / 2, n - 1) * se,
+        .groups = "drop"
+      )
+
   } else {
-    df <- df %>% mutate(y_adjusted = .data$sub_y)
-  }
+    # ORIGINAL PATH: WITHIN-SUBJECTS (MOREY)
+    df_participant <- data %>%
+      group_by(across(all_of(participant_group_vars))) %>%
+      summarise(sub_y = mean(.data[[y_name]], na.rm = TRUE), .groups = "drop")
 
-  # Aggregate data at the plot level
-  df <- df %>%
-    group_by(across(all_of(c(between, within)))) %>%
-    summarize(
-      mean = mean(.data$y_adjusted, na.rm = TRUE),
-      n = n(),
-      se = sd(.data$y_adjusted, na.rm = TRUE) / sqrt(n),
-      ci = qt(1 - (1 - ci) / 2, n - 1) * .data$se,
-      .groups = "drop"
-    )
-
-  # Apply Morey correction for within-subject SE
-  if (!possibly_null(within)) {
-    if (!possibly_null(between)) {
-      df <- df %>%
-        group_by(across(all_of(between))) %>%
-        mutate(
-          morey_correction = sqrt(n() / (n() - 1)),
-          se = .data$se * .data$morey_correction
-        ) %>%
-        ungroup()
+    # Adjust for within-subject variability (Morey correction)
+    if (length(within_vars)!=0) {
+      df_participant <- df_participant %>%
+        group_by(across(all_of(c(group_vars, between_vars)))) %>%
+        mutate(user_mean = mean(sub_y, na.rm = TRUE)) %>%
+        ungroup() %>%
+        group_by(across(all_of(between_vars))) %>%
+        mutate(grand_mean = mean(sub_y, na.rm = TRUE)) %>%
+        ungroup() %>%
+        mutate(y_adjusted = sub_y - user_mean + grand_mean)
     } else {
-      df <- df %>%
-        mutate(
-          morey_correction = sqrt(n() / (n() - 1)),
-          se = .data$se * .data$morey_correction
+      df_participant <- df_participant %>%
+        mutate(y_adjusted = sub_y)
+    }
+
+    # Aggregate at plot level
+    if (length(group_vars) > 0) {
+      df_plot <- df_participant %>%
+        group_by(across(all_of(plot_group_vars))) %>%
+        summarise(
+          mean = mean(y_adjusted, na.rm = TRUE),
+          n    = n(),
+          se   = sd(y_adjusted, na.rm = TRUE) / sqrt(n),
+          ci   = qt(1 - (1 - ci) / 2, n - 1) * se,
+          .groups = "drop"
+        )
+    } else {
+      df_plot <- df_participant %>%
+        summarise(
+          mean = mean(y_adjusted, na.rm = TRUE),
+          n    = n(),
+          se   = sd(y_adjusted, na.rm = TRUE) / sqrt(n),
+          ci   = qt(1 - (1 - ci) / 2, n - 1) * se,
+          .groups = "drop"
         )
     }
-    df <- df %>% select(-morey_correction)
+
+    # Morey correction for within-subject SE
+    if (length(within_vars)!=0) {
+      if (length(between_vars)!=0) {
+        df_plot <- df_plot %>%
+          group_by(across(all_of(between_vars))) %>%
+          mutate(
+            morey_correction = sqrt(n() / (n() - 1)),
+            se = se * morey_correction
+          ) %>%
+          ungroup() %>%
+          select(-morey_correction)
+      } else {
+        df_plot <- df_plot %>%
+          mutate(
+            morey_correction = sqrt(n / (n - 1)),
+            se = se * morey_correction
+          ) %>%
+          select(-morey_correction)
+      }
+    }
   }
 
-  # Handle cases where mean = 0 and sd = 0
-  filter_conditions <- data %>%
-    group_by(across(all_of(c(between, within)))) %>%
-    summarize(
-      mean = mean(!!y, na.rm = TRUE),
-      sd = sd(!!y, na.rm = TRUE),
-      .groups = "drop"
-    ) %>%
-    filter(.data$mean == 0, .data$sd == 0) %>%
-    select(all_of(c(between, within))) %>%
-    distinct() %>%
-    mutate(filter = TRUE)
-
-  # Ensure left join works even if some grouping vars are NULL
-  join_vars <- intersect(names(df), names(filter_conditions))
-
-  if (nrow(filter_conditions) > 0 & zero.rm) {
-    df <- df %>%
-      left_join(filter_conditions, by = join_vars) %>%
-      mutate(
-        filter = ifelse(is.na(.data$filter), FALSE, .data$filter),
-        mean = ifelse(.data$filter, NA, .data$mean),
-        se = ifelse(.data$filter, NA, .data$se),
-        ci = ifelse(.data$filter, NA, .data$ci)
+  # Remove cases where mean and sd are both zero, if requested
+  if (zero.rm) {
+    filter_group_vars <- plot_group_vars
+    df_zero <- data %>%
+      group_by(across(all_of(filter_group_vars))) %>%
+      summarise(
+        mean = mean(.data[[y_name]], na.rm = TRUE),
+        sd = sd(.data[[y_name]], na.rm = TRUE),
+        .groups = "drop"
       ) %>%
-      select(-.data$filter)
+      filter(mean == 0, sd == 0) %>%
+      select(all_of(filter_group_vars)) %>%
+      mutate(filter = TRUE)
+
+    join_vars <- intersect(names(df_plot), names(df_zero))
+    if (nrow(df_zero) > 0) {
+      df_plot <- df_plot %>%
+        left_join(df_zero, by = join_vars) %>%
+        mutate(
+          filter = ifelse(is.na(filter), FALSE, filter),
+          mean = ifelse(filter, NA, mean),
+          se = ifelse(filter, NA, se),
+          ci = ifelse(filter, NA, ci)
+        ) %>%
+        select(-filter)
+    }
   }
 
-  return(df)
+  return(df_plot)
 }
 
 
@@ -179,16 +256,16 @@ agg_multinomial <- function(
     numeric = TRUE) {
 
   # Capture inputs with tidy evaluation
-  responses_enquo <- rlang::enquo(responses)
-  group_enquo <- rlang::enquo(group)
+  responses_enquo <- enquo(responses)
+  group_enquo <- enquo(group)
 
   # Initialize response_vars
   response_vars <- NULL
 
   # Handle different input types for responses
-  if (rlang::is_character(rlang::quo_get_expr(responses_enquo))) {
+  if (is_character(quo_get_expr(responses_enquo))) {
     # Character vector input
-    response_vars <- rlang::quo_get_expr(responses_enquo)
+    response_vars <- quo_get_expr(responses_enquo)
   } else {
     # For tidyverse-style input, we need to safely evaluate it
     response_vars <- tryCatch({
@@ -196,7 +273,7 @@ agg_multinomial <- function(
       dplyr::select(data, !!responses_enquo) %>% colnames()
     }, error = function(e) {
       # If that fails, just return the expression and let validation handle it
-      as.character(rlang::quo_get_expr(responses_enquo))
+      as.character(quo_get_expr(responses_enquo))
     })
   }
 
@@ -209,11 +286,11 @@ agg_multinomial <- function(
   group_vars <- NULL
 
   # Handle different input types for group
-  if (rlang::is_null(rlang::quo_get_expr(group_enquo))) {
+  if (is_null(quo_get_expr(group_enquo))) {
     group_vars <- NULL
-  } else if (rlang::is_character(rlang::quo_get_expr(group_enquo))) {
+  } else if (is_character(quo_get_expr(group_enquo))) {
     # Character vector input
-    group_vars <- rlang::quo_get_expr(group_enquo)
+    group_vars <- quo_get_expr(group_enquo)
   } else {
     # For tidyverse-style input, we need to handle it differently
     group_vars <- tryCatch({
@@ -221,7 +298,7 @@ agg_multinomial <- function(
       dplyr::select(data, !!group_enquo) %>% colnames()
     }, error = function(e) {
       # If that fails, try to extract the variable names from the expression
-      expr <- rlang::quo_get_expr(group_enquo)
+      expr <- quo_get_expr(group_enquo)
       if (is.call(expr) && identical(expr[[1]], as.name("c"))) {
         # Handle c(var1, var2) syntax
         var_names <- as.character(expr[-1])
@@ -258,7 +335,7 @@ agg_multinomial <- function(
     dplyr::group_by(dplyr::across(dplyr::all_of(new_group))) %>%
     # Calculate sum of responses for each group
     dplyr::summarise(
-      Resp = sum(.data$value, na.rm = TRUE),
+      Resp = sum(value, na.rm = TRUE),
       .groups = "drop"
     )
 
@@ -266,18 +343,18 @@ agg_multinomial <- function(
   if (!is.null(group_vars)) {
     data_sum <- data_sum %>%
       dplyr::group_by(dplyr::across(dplyr::all_of(group_vars))) %>%
-      dplyr::mutate(!!nDV_name := sum(.data$Resp, na.rm = TRUE)) %>%
+      dplyr::mutate(!!nDV_name := sum(Resp, na.rm = TRUE)) %>%
       dplyr::ungroup()
   } else {
     data_sum <- data_sum %>%
-      dplyr::mutate(!!nDV_name := sum(.data$Resp, na.rm = TRUE))
+      dplyr::mutate(!!nDV_name := sum(Resp, na.rm = TRUE))
   }
 
   # Convert back to wide format
   data_sum <- data_sum %>%
     tidyr::pivot_wider(
-      names_from = .data$response,
-      values_from = .data$Resp
+      names_from = response,
+      values_from = Resp
     )
 
   # Prepare output based on whether DV_name is provided

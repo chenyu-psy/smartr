@@ -2,7 +2,7 @@
 % Please edit documentation in R/data-helper.R
 \name{agg_plot}
 \alias{agg_plot}
-\title{Aggregate Data for Plotting}
+\title{Aggregate Data for Plotting (Between/Within-Subject Design)}
 \usage{
 agg_plot(
   data,
@@ -17,37 +17,23 @@ agg_plot(
 \arguments{
 \item{data}{A data frame containing the data to be aggregated.}
 
-\item{y}{The variable to be aggregated (can be a string or tidyverse-style variable).}
+\item{y}{The variable to be aggregated (string or unquoted variable name).}
 
-\item{between}{The between-subject factor (can be a string or tidyverse-style variable). Default is \code{NULL}.}
+\item{between}{Between-subject factor(s) (string, unquoted variable name, or tidyselect expression). Default is \code{NULL}.}
 
-\item{within}{The within-subject factor (can be a string or tidyverse-style variable). Default is \code{NULL}.}
+\item{within}{Within-subject factor(s) (string, unquoted variable name, or tidyselect expression). Default is \code{NULL}.}
 
-\item{group}{The grouping variable (can be a string or tidyverse-style variable). Default is \code{NULL}.}
+\item{group}{Subject/grouping variable(s) (string, unquoted variable name, or tidyselect expression). Default is \code{NULL}.}
 
-\item{ci}{The confidence interval level. Default is \code{0.95}.}
+\item{ci}{Confidence interval level (between 0 and 1). Default is \code{0.95}.}
 
-\item{zero.rm}{Logical indicating whether to remove cases where the mean and standard deviation are both zero. Default is \code{TRUE}.}
+\item{zero.rm}{Logical; if \code{TRUE}, removes cases where mean and sd are both zero. Default is \code{TRUE}.}
 }
 \value{
-A data frame containing the aggregated data with the following columns:
-\itemize{
-\item \code{mean}: The mean of the aggregated variable.
-\item \code{n}: The number of observations.
-\item \code{se}: The standard error of the mean.
-\item \code{ci}: The confidence interval.
-}
+A data frame with columns: mean, n, se, ci, and grouping variables.
 }
 \description{
-This function aggregates data for plotting by computing the mean, standard error, and confidence interval. It supports both between-subject and within-subject factors, and includes adjustments for within-subject variability (e.g., Morey correction).
+Aggregates data for plotting by computing the mean, standard error, and confidence interval.
+Supports both between-subject and within-subject factors, and applies Morey correction for within-subject designs.
 }
-\examples{
-\dontrun{
-data <- data.frame(
-  subject = rep(1:10, each = 2),
-  condition = rep(c("A", "B"), times = 10),
-  score = rnorm(20)
-)
-agg_plot(data, y = score, between = condition, group = subject)
-}
-}
+\keyword{internal}
