@@ -11,7 +11,7 @@ smart_runFun(
   cores = NULL,
   maxCore = NULL,
   priority = 1,
-  checkInt = 17,
+  checkInt = 13,
   name = NULL,
   export = FALSE
 )
