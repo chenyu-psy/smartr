@@ -14,15 +14,18 @@ save_results(
 )
 }
 \arguments{
-\item{path}{Character. Directory path where results will be saved. Default is "./results/".}
+\item{path}{Character. Directory path where results will be saved. Supports dynamic
+placeholders in curly braces (e.g., \code{path = "./data/{nPart}/"}). At runtime,
+\code{{nPart}} will be replaced with the corresponding value from a parameter list.
+Default is \code{"./results/"}.}
 
-\item{name_prefix}{Character. Prefix for the saved file names. Default is "Results".}
+\item{name_prefix}{Character. Prefix for the saved file names. Default is \code{"Results"}.}
 
-\item{sep}{Character. Separator used in file names. Default is "_".}
+\item{sep}{Character. Separator used in file names. Default is \code{"_"}.}
 
-\item{format}{Character. Format for saving results ("rds", "csv", or custom). Default is "rds".}
+\item{format}{Character. Format for saving results (\code{"rds"}, \code{"csv"}, or custom). Default is \code{"rds"}.}
 
-\item{save_fun}{Function. Custom function to save results. If NULL, uses default based on \code{format}.}
+\item{save_fun}{Function. Custom function to save results. If \code{NULL}, uses default based on \code{format}.}
 
 \item{...}{Additional arguments to be passed to the saving function.}
 }
@@ -31,8 +34,12 @@ A list containing the validated and prepared arguments for saving results.
 }
 \description{
 Prepares and validates the parameters for saving results to disk.
+The \code{path} argument supports dynamic directory creation by allowing placeholders
+in curly braces (e.g., \code{path = "./data/{nPart}/"}). These placeholders will be
+replaced with values from a parameter list at runtime.
 }
 \examples{
 res <- save_results(path = "output", format = "csv")
 print(res)
+
 }
