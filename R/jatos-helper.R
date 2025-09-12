@@ -81,21 +81,37 @@ get_JATOS_data <- function(token,
   # Download the metadata from the JATOS server
   multi_query <- paste0("batchId=", batchId, collapse = "&")
   metadata_path <- file.path(dataPath, "metadata.json")
+
   tryCatch({
+    # Make the GET request without writing to disk immediately
     res <- httr::GET(
       url = stringr::str_glue("{url}/metadata?{multi_query}"),
-      httr::add_headers(.headers = headers),
-      httr::write_disk(metadata_path, overwrite = TRUE)
+      httr::add_headers(.headers = headers)
     )
 
-    if (httr::status_code(res) == 200) {
-      message(stringr::str_glue("Successfully downloaded metadata for batch IDs: {paste(batchId, collapse = ' ')}."))
-    } else {
+    # First, check for a successful HTTP status code
+    if (httr::status_code(res) != 200) {
       stop(stringr::str_glue("Failed to download metadata. Status code: {httr::status_code(res)}"))
     }
+
+    # Check the Content-Type header to ensure it's a JSON file
+    content_type <- httr::headers(res)$`Content-Type`
+    if (is.null(content_type) || !stringr::str_detect(content_type, "application/json")) {
+      stop(stringr::str_glue(
+        "Request was successful, but the response was not JSON (Content-Type: {content_type}). ",
+        "It might be an HTML login page. Please check your authentication."
+      ))
+    }
+
+    # If all checks pass, write the response content to the file
+    writeBin(httr::content(res, "raw"), metadata_path)
+
+    message(stringr::str_glue("Successfully downloaded metadata for batch IDs: {paste(batchId, collapse = ' ')}."))
+
   }, error = function(e) {
     stop(stringr::str_glue("Error during metadata download: {e$message}"))
   })
+
 
   # Read the metadata from the downloaded JSON file
   metadata <- read_metaData(metadata_path)
