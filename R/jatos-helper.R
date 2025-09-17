@@ -17,7 +17,7 @@
 #'
 #' @importFrom rlang .data
 #' @importFrom dplyr add_row filter mutate
-#' @importFrom httr GET add_headers write_disk status_code
+#' @importFrom httr2 request req_headers req_perform resp_status resp_header resp_body_raw
 #' @importFrom jsonlite read_json
 #' @importFrom stringr str_glue str_extract_all str_remove
 #'
@@ -73,28 +73,43 @@ get_JATOS_data <- function(token,
   }
 
   # Determine the URL based on whether attachments should be downloaded
-  data_url <- ifelse(!attachments, stringr::str_glue("{url}/data"), url)
+  data_url <- ifelse(!attachments, str_glue("{url}/data"), url)
 
   # Create the authorization header with the specified token
-  headers <- c(`Authorization` = stringr::str_glue("Bearer {token}"))
+  headers <- c(Authorization = str_glue("Bearer {token}"))
 
   # Download the metadata from the JATOS server
   multi_query <- paste0("batchId=", batchId, collapse = "&")
   metadata_path <- file.path(dataPath, "metadata.json")
-  tryCatch({
-    res <- httr::GET(
-      url = stringr::str_glue("{url}/metadata?{multi_query}"),
-      httr::add_headers(.headers = headers),
-      httr::write_disk(metadata_path, overwrite = TRUE)
-    )
 
-    if (httr::status_code(res) == 200) {
-      message(stringr::str_glue("Successfully downloaded metadata for batch IDs: {paste(batchId, collapse = ' ')}."))
-    } else {
-      stop(stringr::str_glue("Failed to download metadata. Status code: {httr::status_code(res)}"))
+  tryCatch({
+    # Build and perform the GET request
+    req <- request(str_glue("{url}/metadata?{multi_query}")) %>%
+      req_headers(!!!headers)
+
+    res <- req_perform(req)
+
+    # Check for a successful HTTP status code
+    if (resp_status(res) != 200) {
+      stop(str_glue("Failed to download metadata. Status code: {resp_status(res)}"))
     }
+
+    # Check the Content-Type header to ensure it's a JSON file
+    content_type <- resp_header(res, "content-type")
+    if (is.null(content_type) || !str_detect(content_type, "application/json")) {
+      stop(str_glue(
+        "Request was successful, but the response was not JSON (Content-Type: {content_type}). ",
+        "It might be an HTML login page. Please check your authentication."
+      ))
+    }
+
+    # If all checks pass, write the response content to the file
+    writeBin(resp_body_raw(res), metadata_path)
+    message(str_glue("Successfully downloaded metadata for batch IDs: {paste(batchId, collapse = ' ')}."))
+
+
   }, error = function(e) {
-    stop(stringr::str_glue("Error during metadata download: {e$message}"))
+    stop(str_glue("Error during metadata download: {e$message}"))
   })
 
   # Read the metadata from the downloaded JSON file
@@ -226,15 +241,18 @@ read_metaData <- function(metaData_path) {
 #' @param headers HTTP headers including authorization
 #' @param data_path Path where data will be saved
 #'
+#' @importFrom rlang .data
+#' @importFrom dplyr add_row filter mutate pull
+#' @importFrom httr2 request req_headers req_perform resp_status resp_body_raw
+#' @importFrom stringr str_glue
 #' @keywords internal
 download_missing_data <- function(metadata, data_url, headers, data_path) {
   # Filter metadata to find data that needs downloading
   filtered_metadata <- metadata %>%
-    # Use file size to check if the files need to be updated
-    dplyr::mutate(
+    mutate(
       local_size = ifelse(is.na(.data$file), 0, round(file.info(.data$file)$size / 1024, 2))
     ) %>%
-    dplyr::filter(
+    filter(
       .data$fileSize > 0.5,
       .data$fileSize > .data$local_size
     )
@@ -252,12 +270,12 @@ download_missing_data <- function(metadata, data_url, headers, data_path) {
   for (batch_id in batch_ids) {
     # Get result IDs for current batch
     result_ids <- filtered_metadata %>%
-      dplyr::filter(.data$batchId == batch_id) %>%
-      dplyr::pull(.data$resultId)
+      filter(.data$batchId == batch_id) %>%
+      pull(.data$resultId)
 
     # Define file paths
-    zip_file_path <- file.path(tempdir(), stringr::str_glue("JATOS_DATA_{batch_id}.jrzip"))
-    unzip_dir_path <- file.path(data_path, stringr::str_glue("JATOS_DATA_{batch_id}"))
+    zip_file_path <- file.path(tempdir(), str_glue("JATOS_DATA_{batch_id}.jrzip"))
+    unzip_dir_path <- file.path(data_path, str_glue("JATOS_DATA_{batch_id}"))
 
     # Create directory if it doesn't exist
     if (!dir.exists(unzip_dir_path)) {
@@ -273,26 +291,25 @@ download_missing_data <- function(metadata, data_url, headers, data_path) {
       result_id_query <- paste0("studyResultId=", result_ids, collapse = "&")
 
       tryCatch({
-        response <- httr::GET(
-          url = stringr::str_glue("{data_url}?{result_id_query}"),
-          httr::add_headers(.headers = headers),
-          httr::write_disk(zip_file_path, overwrite = TRUE)
-        )
+        req <- request(str_glue("{data_url}?{result_id_query}")) %>%
+          req_headers(!!!headers)
+        resp <- req_perform(req)
 
-        if (httr::status_code(response) == 200) {
-          message(stringr::str_glue("Successfully downloaded missing data for batch {batch_id} using result IDs."))
+        if (resp_status(resp) == 200) {
+          writeBin(resp_body_raw(resp), zip_file_path)
+          message(str_glue("Successfully downloaded missing data for batch {batch_id} using result IDs."))
           utils::unzip(zip_file_path, exdir = unzip_dir_path, overwrite = TRUE)
           download_successful <- TRUE
-        } else if (httr::status_code(response) == 414) {
-          message(stringr::str_glue("URI too long for batch {batch_id}. Retrying with batch ID..."))
+        } else if (resp_status(resp) == 414) {
+          message(str_glue("URI too long for batch {batch_id}. Retrying with batch ID..."))
         } else {
-          warning(stringr::str_glue(
+          warning(str_glue(
             "Failed to download data using result IDs for batch {batch_id}. ",
-            "Status code: {httr::status_code(response)}"
+            "Status code: {resp_status(resp)}"
           ))
         }
       }, error = function(e) {
-        warning(stringr::str_glue(
+        warning(str_glue(
           "Error during download using result IDs for batch {batch_id}: {e$message}"
         ))
       })
@@ -301,29 +318,29 @@ download_missing_data <- function(metadata, data_url, headers, data_path) {
     # Fallback to batch ID method if result IDs method failed or wasn't used
     if (!download_successful) {
       tryCatch({
-        response <- httr::GET(
-          url = stringr::str_glue("{data_url}?batchId={batch_id}"),
-          httr::add_headers(.headers = headers),
-          httr::write_disk(zip_file_path, overwrite = TRUE)
-        )
+        req <- request(str_glue("{data_url}?batchId={batch_id}")) %>%
+          req_headers(!!!headers)
+        resp <- req_perform(req)
 
-        if (httr::status_code(response) == 200) {
-          message(stringr::str_glue("Successfully downloaded missing data for batch {batch_id} using batch ID."))
+        if (resp_status(resp) == 200) {
+          writeBin(resp_body_raw(resp), zip_file_path)
+          message(str_glue("Successfully downloaded missing data for batch {batch_id} using batch ID."))
           utils::unzip(zip_file_path, exdir = unzip_dir_path, overwrite = TRUE)
         } else {
-          warning(stringr::str_glue(
+          warning(str_glue(
             "Failed to download data for batch {batch_id} using batch ID. ",
-            "Status code: {httr::status_code(response)}"
+            "Status code: {resp_status(resp)}"
           ))
         }
       }, error = function(e) {
-        warning(stringr::str_glue(
+        warning(str_glue(
           "Error during download for batch {batch_id} using batch ID: {e$message}"
         ))
       })
     }
   }
 }
+
 
 
 
@@ -617,15 +634,16 @@ read_json_data <- function(files) {
 #' full_study_info <- get_jatos_studyInfo("your-auth-token", export = "all")
 #' }
 #'
-#' @importFrom httr GET add_headers write_disk status_code
+#' @importFrom httr2 request req_headers req_perform resp_status resp_header resp_body_raw
 #' @importFrom stringr str_glue str_ends
 #' @importFrom dplyr select rename
 #' @importFrom tidyr unnest_wider unnest_longer
-#'
+#' @importFrom jsonlite read_json
+#' @keywords internal
 #' @export
 get_jatos_studyInfo <- function(token,
-                                 url = "https://coglab.xyz/jatos/api/v1/studies",
-                                 export = c("simple", "all")) {
+                                url = "https://coglab.xyz/jatos/api/v1/studies",
+                                export = c("simple", "all")) {
   # Input validation
   if (missing(token) || !is.character(token) || length(token) != 1) {
     stop("Token must be a single character string")
@@ -636,7 +654,7 @@ get_jatos_studyInfo <- function(token,
   }
 
   # Ensure URL ends with "studies"
-  if (!stringr::str_ends(url, "studies")) {
+  if (!str_ends(url, "studies")) {
     stop("URL must end with 'studies'. Please check the API endpoint.")
   }
 
@@ -647,41 +665,45 @@ get_jatos_studyInfo <- function(token,
   data_path <- file.path(tempdir(), "studyinfo.json")
 
   # Create the authorization header with the specified token
-  headers <- c(`Authorization` = stringr::str_glue("Bearer {token}"))
+  headers <- c(Authorization = str_glue("Bearer {token}"))
 
   # Construct the full API endpoint URL with query parameters
-  full_url <- stringr::str_glue(
+  full_url <- str_glue(
     "{url}/properties?withComponentProperties=true&withBatchProperties=true"
   )
 
-  # Download the metadata from the JATOS server
   tryCatch({
-    res <- httr::GET(
-      url = full_url,
-      httr::add_headers(.headers = headers),
-      httr::write_disk(data_path, overwrite = TRUE)
-    )
+    req <- request(full_url) %>%
+      req_headers(!!!headers)
+    resp <- req_perform(req)
+    status_code <- as.character(resp_status(resp))
 
-    # Check HTTP status code
-    status_code <- httr::status_code(res)
-    if (status_code == 200) {
-      message("Successfully downloaded study information.")
-    } else if (status_code == 401) {
-      stop("Authentication failed. Please check your token.")
-    } else if (status_code == 404) {
-      stop("API endpoint not found. Please check the URL.")
-    } else {
-      stop(stringr::str_glue("Failed to download study information. Status code: {status_code}"))
-    }
+    switch(
+      status_code,
+      "200" = {
+        content_type <- resp_header(resp, "content-type")
+        if (is.null(content_type) || !grepl("application/json", content_type)) {
+          stop(str_glue(
+            "Request was successful, but the response was not JSON (Content-Type: {content_type}). ",
+            "It might be an HTML login page. Please check your authentication."
+          ))
+        }
+        message("Successfully downloaded study information.")
+        writeBin(resp_body_raw(resp), data_path)
+      },
+      "401" = stop("Authentication failed. Please check your token."),
+      "404" = stop("API endpoint not found. Please check the URL."),
+      stop(str_glue("Failed to download study information. Status code: {status_code}"))
+    )
   }, error = function(e) {
-    stop(stringr::str_glue("Error during study information download: {e$message}"))
+    stop(str_glue("Error during study information download: {e$message}"))
   })
 
   # Read the metadata from the downloaded JSON file
   study_info <- tryCatch({
-    read_json_data(data_path)$data
+    read_json(data_path)$data
   }, error = function(e) {
-    stop(stringr::str_glue("Error parsing JSON data: {e$message}"))
+    stop(str_glue("Error parsing JSON data: {e$message}"))
   })
 
   # Return data based on export format
@@ -691,9 +713,9 @@ get_jatos_studyInfo <- function(token,
     # Process and simplify the study information
     tryCatch({
       simple_study_info <- study_info %>%
-        dplyr::select(-batchList, -jsonData, -componentList, -members) %>%
-        tidyr::unnest_wider(c(components, batches), names_sep = "_") %>%
-        dplyr::rename(
+        select(-batchList, -jsonData, -componentList, -members) %>%
+        unnest_wider(c(components, batches), names_sep = "_") %>%
+        rename(
           studyId = id,
           studyName = title,
           componentId = components_id,
@@ -701,14 +723,15 @@ get_jatos_studyInfo <- function(token,
           batchId = batches_id,
           batchName = batches_title
         ) %>%
-        dplyr::select(studyId, studyName, componentId, componentName, batchId, batchName) %>%
-        tidyr::unnest_longer(c(componentId, componentName)) %>%
-        tidyr::unnest_longer(c(batchId, batchName))
+        select(studyId, studyName, componentId, componentName, batchId, batchName) %>%
+        unnest_longer(c(componentId, componentName)) %>%
+        unnest_longer(c(batchId, batchName))
 
       return(simple_study_info)
     }, error = function(e) {
-      stop(stringr::str_glue("Error processing study information: {e$message}"))
+      stop(str_glue("Error processing study information: {e$message}"))
     })
   }
 }
+
 

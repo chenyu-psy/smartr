@@ -36,3 +36,4 @@ full_study_info <- get_jatos_studyInfo("your-auth-token", export = "all")
 }
 
 }
+\keyword{internal}

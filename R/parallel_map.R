@@ -103,6 +103,7 @@ parallel_map <- function(
   if (!is.null(auto_save)) {
     required_fields <- c("name_prefix", "sep", "format", "path", "save_fun")
     missing_fields <- setdiff(required_fields, names(auto_save))
+
     if (length(missing_fields) > 0) {
       stop(sprintf("auto_save is missing required fields: %s", paste(missing_fields, collapse = ", ")))
     }
@@ -122,6 +123,36 @@ parallel_map <- function(
     run_args <- static_args
     design_vars <- names(design)
     param_values <- as.list(param_grid[i, design_vars])
+
+    # Check if users require to use the dynamic argument to create sub folder
+    if (!is.null(auto_save) && grepl("\\{.*?\\}", auto_save$path)) {
+      # Extract parameter names inside {}
+      params_in_string <- regmatches(auto_save$path, gregexpr("\\{([^}]+)\\}", auto_save$path))[[1]]
+      params_in_string <- gsub("\\{|\\}", "", params_in_string)
+
+      # 1. Check if all params are in the list
+      missing_params <- setdiff(params_in_string, names(param_grid))
+      if (length(missing_params) > 0) {
+        stop(paste("Missing parameters:", paste(missing_params, collapse = ", ")))
+      }
+
+      # 2. Replace parameter names with their values
+      for (param in params_in_string) {
+        value <- param_grid[[param]]
+        auto_save$path <- gsub(paste0("\\{", param, "\\}"), value, auto_save$path)
+      }
+
+      # Ensure the path ends with "/"
+      if (!grepl("/$", auto_save$path)) {
+        auto_save$path <- paste0(auto_save$path, "/")
+      }
+
+      # 3. Create the subdirectory if it does not exist
+      if (!dir.exists(auto_save$path)) {
+        dir.create(auto_save$path, recursive = TRUE)
+        message(sprintf("Directory '%s' did not exist and was created.", auto_save$path))
+      }
+    }
 
     # Generate dynamic arguments
     for (arg in dynamic_arg_names) {
@@ -208,18 +239,25 @@ parallel_map <- function(
 #' Save Results Utility
 #'
 #' Prepares and validates the parameters for saving results to disk.
+#' The `path` argument supports dynamic directory creation by allowing placeholders
+#' in curly braces (e.g., `path = "./data/{nPart}/"`). These placeholders will be
+#' replaced with values from a parameter list at runtime.
 #'
-#' @param path Character. Directory path where results will be saved. Default is "./results/".
-#' @param name_prefix Character. Prefix for the saved file names. Default is "Results".
-#' @param sep Character. Separator used in file names. Default is "_".
-#' @param format Character. Format for saving results ("rds", "csv", or custom). Default is "rds".
-#' @param save_fun Function. Custom function to save results. If NULL, uses default based on `format`.
+#' @param path Character. Directory path where results will be saved. Supports dynamic
+#'   placeholders in curly braces (e.g., `path = "./data/{nPart}/"`). At runtime,
+#'   `{nPart}` will be replaced with the corresponding value from a parameter list.
+#'   Default is `"./results/"`.
+#' @param name_prefix Character. Prefix for the saved file names. Default is `"Results"`.
+#' @param sep Character. Separator used in file names. Default is `"_"`.
+#' @param format Character. Format for saving results (`"rds"`, `"csv"`, or custom). Default is `"rds"`.
+#' @param save_fun Function. Custom function to save results. If `NULL`, uses default based on `format`.
 #' @param ... Additional arguments to be passed to the saving function.
 #'
 #' @return A list containing the validated and prepared arguments for saving results.
 #' @examples
 #' res <- save_results(path = "output", format = "csv")
 #' print(res)
+#'
 #' @export
 save_results <- function(
     path = "./results/",

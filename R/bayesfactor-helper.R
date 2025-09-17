@@ -127,22 +127,14 @@ bf_pairwise <- function(
   posterior_results <- compute_emmeans_and_pairs(model, spec, at_list)
 
   # Process prior model if provided
-  prior_results <- NULL
-  if (!is.null(prior)) {
-    prior_results <- compute_emmeans_and_pairs(prior, spec, at_list)
-  }
+  if (is.null(prior)) prior <- bayestestR::unupdate(model)
+  prior_results <- compute_emmeans_and_pairs(prior, spec, at_list)
 
   # Compute Bayes Factors
-  bf_results <- if (!is.null(prior_results)) {
-    bayestestR::bayesfactor_parameters(
-      posterior_results$pairs,
-      prior = prior_results$pairs,
-      direction = direction)
-  } else {
-    bayestestR::bayesfactor_parameters(
-      posterior_results$pairs,
-      direction = direction)
-  }
+  bf_results <- bayestestR::bayesfactor_parameters(
+    posterior_results$pairs,
+    prior = prior_results$pairs,
+    direction = direction)
 
   # Return results as a structured list
   structure(

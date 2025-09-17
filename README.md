@@ -62,17 +62,13 @@ remove_job("model_fit")  # Remove by name
 
 This package also includes advanced functions for parallel model fitting or model comparison
 
-### 1. Parallel Model Comparison
+### 1. Parallel Map
 
-The `parallel_model_fit` function fits a grid of models in parallel (or in sequence) and, if
-optionally runs `bridge_sampler()` on each fitted model and stores the results for later Bayes‑factor computation.
+The `parallel_map` function executives another function with the input from a grid in parallel (or in sequence).
 
 #### Key Features:
 
--   Parallel execution of model fitting and bridge sampling
--   Automatic model comparison table generation
--   Support for both `brms` and `bmm` models
--   Built-in checks for existing results to avoid redundant computation
+-   Parallel execution of a function with varied input parameters
 
 #### Basic Usage:
 
