@@ -105,14 +105,12 @@ get_JATOS_data <- function(token,
 
     # If all checks pass, write the response content to the file
     writeBin(resp_body_raw(res), metadata_path)
-
     message(str_glue("Successfully downloaded metadata for batch IDs: {paste(batchId, collapse = ' ')}."))
+
 
   }, error = function(e) {
     stop(str_glue("Error during metadata download: {e$message}"))
   })
-
-
 
   # Read the metadata from the downloaded JSON file
   metadata <- read_metaData(metadata_path)
