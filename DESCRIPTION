@@ -34,7 +34,7 @@ Imports:
     stringr,
     purrr,
     ggplot2,
-    httr,
+    httr2,
     jsonlite,
     rlang,
     stats,
