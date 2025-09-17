@@ -7,7 +7,7 @@
 get_jatos_studyInfo(
   token,
   url = "https://coglab.xyz/jatos/api/v1/studies",
-  export = c("simple", "all")
+  simplify = TRUE
 )
 }
 \arguments{
@@ -15,12 +15,11 @@ get_jatos_studyInfo(
 
 \item{url}{Character string. Base URL of the JATOS API. Default is "https://coglab.xyz/jatos/api/v1/studies".}
 
-\item{export}{Character string. Format of the returned data: either "simple" (default) or "all".
-"simple" returns a tidied data frame with key study information.
-"all" returns the complete raw study information.}
+\item{simplify}{Logical. If TRUE (default), returns a tidied data frame with key study information.
+If FALSE, returns the complete raw study information.}
 }
 \value{
-A data frame containing study information. The structure depends on the \code{export} parameter.
+A data frame containing study information. The structure depends on the \code{simplify} parameter.
 }
 \description{
 This function retrieves study information from a JATOS (Just Another Tool for Online Studies) server
@@ -32,8 +31,7 @@ using the JATOS API. It can return either complete study information or a simpli
 study_info <- get_jatos_studyInfo("your-auth-token")
 
 # Get complete study information
-full_study_info <- get_jatos_studyInfo("your-auth-token", export = "all")
+full_study_info <- get_jatos_studyInfo("your-auth-token", simplify = FALSE)
 }
 
 }
-\keyword{internal}

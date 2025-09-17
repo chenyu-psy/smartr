@@ -19,7 +19,7 @@
 #' @importFrom dplyr add_row filter mutate
 #' @importFrom httr2 request req_headers req_perform resp_status resp_header resp_body_raw
 #' @importFrom jsonlite read_json
-#' @importFrom stringr str_glue str_extract_all str_remove
+#' @importFrom stringr str_glue str_extract_all str_remove str_detect
 #'
 #' @examples
 #' \dontrun{
@@ -619,11 +619,10 @@ read_json_data <- function(files) {
 #'
 #' @param token Character string. Authentication token for the JATOS API (required).
 #' @param url Character string. Base URL of the JATOS API. Default is "https://coglab.xyz/jatos/api/v1/studies".
-#' @param export Character string. Format of the returned data: either "simple" (default) or "all".
-#'   "simple" returns a tidied data frame with key study information.
-#'   "all" returns the complete raw study information.
+#' @param simplify Logical. If TRUE (default), returns a tidied data frame with key study information.
+#'   If FALSE, returns the complete raw study information.
 #'
-#' @return A data frame containing study information. The structure depends on the `export` parameter.
+#' @return A data frame containing study information. The structure depends on the `simplify` parameter.
 #'
 #' @examples
 #' \dontrun{
@@ -631,19 +630,18 @@ read_json_data <- function(files) {
 #' study_info <- get_jatos_studyInfo("your-auth-token")
 #'
 #' # Get complete study information
-#' full_study_info <- get_jatos_studyInfo("your-auth-token", export = "all")
+#' full_study_info <- get_jatos_studyInfo("your-auth-token", simplify = FALSE)
 #' }
 #'
-#' @importFrom httr2 request req_headers req_perform resp_status resp_header resp_body_raw
+#' @importFrom httr2 request req_headers req_perform resp_status resp_header resp_body_json
 #' @importFrom stringr str_glue str_ends
 #' @importFrom dplyr select rename
 #' @importFrom tidyr unnest_wider unnest_longer
-#' @importFrom jsonlite read_json
-#' @keywords internal
+#' @importFrom jsonlite fromJSON toJSON
 #' @export
 get_jatos_studyInfo <- function(token,
                                 url = "https://coglab.xyz/jatos/api/v1/studies",
-                                export = c("simple", "all")) {
+                                simplify = TRUE) {
   # Input validation
   if (missing(token) || !is.character(token) || length(token) != 1) {
     stop("Token must be a single character string")
@@ -653,16 +651,21 @@ get_jatos_studyInfo <- function(token,
     stop("URL must be a single character string")
   }
 
-  # Ensure URL ends with "studies"
-  if (!str_ends(url, "studies")) {
-    stop("URL must end with 'studies'. Please check the API endpoint.")
+  if (!is.logical(simplify) || length(simplify) != 1) {
+    stop("simplify must be a logical value (TRUE/FALSE)")
   }
 
-  # Match export argument
-  export <- match.arg(export)
-
-  # Create temporary file path for downloaded data
-  data_path <- file.path(tempdir(), "studyinfo.json")
+  # Ensure URL ends with "studies"
+  if (!str_ends(url, "studies")) {
+    # Try to fix the URL if possible
+    if (str_ends(url, "/")) {
+      url <- paste0(url, "studies")
+      warning("URL modified to end with 'studies': ", url)
+    } else {
+      url <- paste0(url, "/studies")
+      warning("URL modified to end with 'studies': ", url)
+    }
+  }
 
   # Create the authorization header with the specified token
   headers <- c(Authorization = str_glue("Bearer {token}"))
@@ -672,48 +675,50 @@ get_jatos_studyInfo <- function(token,
     "{url}/properties?withComponentProperties=true&withBatchProperties=true"
   )
 
+  # Make the request
+  message("Connecting to JATOS server...")
+  req <- request(full_url) %>%
+    req_headers(!!!headers)
+
   tryCatch({
-    req <- request(full_url) %>%
-      req_headers(!!!headers)
     resp <- req_perform(req)
     status_code <- as.character(resp_status(resp))
 
-    switch(
-      status_code,
-      "200" = {
-        content_type <- resp_header(resp, "content-type")
-        if (is.null(content_type) || !grepl("application/json", content_type)) {
-          stop(str_glue(
-            "Request was successful, but the response was not JSON (Content-Type: {content_type}). ",
-            "It might be an HTML login page. Please check your authentication."
-          ))
-        }
-        message("Successfully downloaded study information.")
-        writeBin(resp_body_raw(resp), data_path)
-      },
-      "401" = stop("Authentication failed. Please check your token."),
-      "404" = stop("API endpoint not found. Please check the URL."),
-      stop(str_glue("Failed to download study information. Status code: {status_code}"))
-    )
-  }, error = function(e) {
-    stop(str_glue("Error during study information download: {e$message}"))
-  })
+    # Handle response based on status code
+    if (status_code != "200") {
+      error_msg <- switch(
+        status_code,
+        "401" = "Authentication failed. Please check your token.",
+        "403" = "Access forbidden. You may not have permission to access this resource.",
+        "404" = "API endpoint not found. Please check the URL.",
+        str_glue("Failed to download study information. Status code: {status_code}")
+      )
+      stop(error_msg)
+    }
 
-  # Read the metadata from the downloaded JSON file
-  study_info <- tryCatch({
-    read_json(data_path)$data
-  }, error = function(e) {
-    stop(str_glue("Error parsing JSON data: {e$message}"))
-  })
+    # Check content type
+    content_type <- resp_header(resp, "content-type")
+    if (is.null(content_type) || !grepl("application/json", content_type)) {
+      stop(str_glue(
+        "Request was successful, but the response was not JSON (Content-Type: {content_type}). ",
+        "It might be an HTML login page. Please check your authentication."
+      ))
+    }
 
-  # Return data based on export format
-  if (export == "all") {
-    return(study_info)
-  } else {
-    # Process and simplify the study information
-    tryCatch({
+    message("Successfully retrieved study information.")
+
+    # Parse JSON directly from response
+    json_data <- resp_body_json(resp)
+
+    # Convert the list to a data frame
+    study_info <- as.data.frame(fromJSON(toJSON(json_data$data), flatten = TRUE))
+
+    # Return data based on simplify parameter
+    if (!simplify) {
+      return(study_info)
+    } else {
+      # Process and simplify the study information
       simple_study_info <- study_info %>%
-        select(-batchList, -jsonData, -componentList, -members) %>%
         unnest_wider(c(components, batches), names_sep = "_") %>%
         rename(
           studyId = id,
@@ -728,10 +733,10 @@ get_jatos_studyInfo <- function(token,
         unnest_longer(c(batchId, batchName))
 
       return(simple_study_info)
-    }, error = function(e) {
-      stop(str_glue("Error processing study information: {e$message}"))
-    })
-  }
+    }
+  }, error = function(e) {
+    stop(str_glue("Error retrieving study information: {e$message}"))
+  })
 }
 
 
