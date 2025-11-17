@@ -122,7 +122,7 @@ parallel_map <- function(
     # Build argument list for this run
     run_args <- static_args
     design_vars <- names(design)
-    param_values <- as.list(param_grid[i, design_vars])
+    param_values <- as.list(param_grid[i, design_vars, drop = FALSE])
 
     # Check if users require to use the dynamic argument to create sub folder
     if (!is.null(auto_save) && grepl("\\{.*?\\}", auto_save$path)) {
